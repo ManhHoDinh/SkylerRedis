@@ -16,7 +16,7 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-
+	
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -35,20 +35,52 @@ func handleConnection(conn net.Conn) {
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			// client closed connection
 			return
 		}
 
-		// Basic RESP parsing: wait for "PING"
-		if strings.TrimSpace(line) == "*1" {
-			// Read the next 2 lines: "$4" and "PING"
-			_, _ = reader.ReadString('\n') // skip "$4"
-			cmd, _ := reader.ReadString('\n')
-			cmd = strings.TrimSpace(cmd)
+		line = strings.TrimSpace(line)
 
+		switch line {
+		case "*1":
+			cmd, err := getCommand(reader)
+			if err != nil {
+				return
+			}
 			if strings.ToUpper(cmd) == "PING" {
 				conn.Write([]byte("+PONG\r\n"))
+			} else {
+				conn.Write([]byte("-ERR unknown command '" + cmd + "'\r\n"))
 			}
+		case "*2":
+			cmd, err := getCommand(reader)
+			if err != nil {
+				return
+			}
+			if strings.ToUpper(cmd) == "ECHO" {
+				msg, err := getCommand(reader)
+				if err != nil {
+					return
+				}
+				conn.Write([]byte("+" + msg + "\r\n"))
+			} else {
+				conn.Write([]byte("-ERR unknown command '" + cmd + "'\r\n"))
+			}
+		default:
+			conn.Write([]byte("-ERR unknown format\r\n"))
 		}
 	}
+}
+
+func getCommand(reader *bufio.Reader) (string, error) {
+	// Skip the length line, e.g., "$4"
+	_, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	// Read the actual command or argument
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(line), nil
 }
