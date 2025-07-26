@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
-var store = make(map[string]string)
+var store = make(map[string]Entry)
 
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
@@ -32,7 +34,6 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		// Đọc dòng đầu tiên như: *3
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			return
@@ -76,21 +77,43 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte("+" + args[1] + "\r\n"))
 			}
 		case "SET":
-			if len(args) != 3 {
+			if len(args) < 3 {
 				conn.Write([]byte("-ERR wrong number of arguments for 'SET'\r\n"))
-			} else {
-				store[args[1]] = args[2]
-				conn.Write([]byte("+OK\r\n"))
+				break
 			}
+
+			key := args[1]
+			val := args[2]
+			var expiry time.Time
+
+			// parse optional arguments (PX ...)
+			if len(args) >= 5 && strings.ToUpper(args[3]) == "PX" {
+				ms, err := strconv.Atoi(args[4])
+				if err != nil {
+					conn.Write([]byte("-ERR PX value must be integer\r\n"))
+					break
+				}
+				expiry = time.Now().Add(time.Duration(ms) * time.Millisecond)
+			}
+
+			store[key] = Entry{value: val, expiryTime: expiry}
+			conn.Write([]byte("+OK\r\n"))
 		case "GET":
 			if len(args) != 2 {
 				conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
 			} else {
-				val, ok := store[args[1]]
-				if ok {
-					conn.Write([]byte("+" + val + "\r\n"))
+				if len(args) != 2 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
+				break
+				}
+				key := args[1]
+				entry, ok := store[key]
+				if !ok || (entry.expiryTime != (time.Time{}) && time.Now().After(entry.expiryTime)) {
+					// nếu có expiry và đã hết hạn
+					delete(store, key) // dọn dẹp luôn
+					conn.Write([]byte("$-1\r\n"))
 				} else {
-					conn.Write([]byte("$-1\r\n")) // nil
+					conn.Write([]byte("+" + entry.value + "\r\n"))
 				}
 			}
 		default:
@@ -104,3 +127,7 @@ func parseLength(s string) int {
 	fmt.Sscanf(s, "*%d", &n)
 	return n
 }
+type Entry struct {
+	value string
+	expiryTime time.Time
+} 
