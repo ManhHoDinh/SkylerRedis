@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 // Ensures gofmt doesn't remove the "net" and "os" imports in stage 1 (feel free to remove this!)
@@ -26,5 +28,23 @@ func main() {
 		fmt.Println("Error accepting connection: ", err.Error())
 		os.Exit(1)
 	}
-	conn.Write([]byte("+PONG\r\n"))
+	go handleConnection(conn)
+}
+
+func handleConnection(conn net.Conn) {
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			// client closed connection
+			return
+		}
+
+		// Check if it's a RESP command like "*1\r\n$4\r\nPING\r\n"
+		if strings.Contains(line, "PING") {
+			conn.Write([]byte("+PONG\r\n"))
+		}
+	}
 }
