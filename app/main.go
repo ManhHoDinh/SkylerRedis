@@ -8,22 +8,21 @@ import (
 	"strings"
 )
 
-func main() {
-	fmt.Println("Logs from your program will appear here!")
+var store = make(map[string]string)
 
+func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			fmt.Println("Error accepting connection:", err.Error())
+			fmt.Println("Failed to accept connection:", err)
 			continue
 		}
-
 		go handleConnection(conn)
 	}
 }
@@ -33,54 +32,75 @@ func handleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
+		// Đọc dòng đầu tiên như: *3
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			return
 		}
-
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 
-		switch line {
-		case "*1":
-			cmd, err := getCommand(reader)
+		if !strings.HasPrefix(line, "*") {
+			conn.Write([]byte("-ERR invalid format\r\n"))
+			continue
+		}
+		numArgs := parseLength(line)
+
+		args := []string{}
+		for i := 0; i < numArgs; i++ {
+			_, err := reader.ReadString('\n') // Skip $len
 			if err != nil {
 				return
 			}
-			if strings.ToUpper(cmd) == "PING" {
-				conn.Write([]byte("+PONG\r\n"))
+			arg, err := reader.ReadString('\n')
+			if err != nil {
+				return
+			}
+			args = append(args, strings.TrimSpace(arg))
+		}
+
+		if len(args) == 0 {
+			conn.Write([]byte("-ERR empty command\r\n"))
+			continue
+		}
+
+		switch strings.ToUpper(args[0]) {
+		case "PING":
+			conn.Write([]byte("+PONG\r\n"))
+		case "ECHO":
+			if len(args) != 2 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'ECHO'\r\n"))
 			} else {
-				conn.Write([]byte("-ERR unknown command '" + cmd + "'\r\n"))
+				conn.Write([]byte("+" + args[1] + "\r\n"))
 			}
-		case "*2":
-			cmd, err := getCommand(reader)
-			if err != nil {
-				return
+		case "SET":
+			if len(args) != 3 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'SET'\r\n"))
+			} else {
+				store[args[1]] = args[2]
+				conn.Write([]byte("+OK\r\n"))
 			}
-			if strings.ToUpper(cmd) == "ECHO" {
-				msg, err := getCommand(reader)
-				if err != nil {
-					return
+		case "GET":
+			if len(args) != 2 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'GET'\r\n"))
+			} else {
+				val, ok := store[args[1]]
+				if ok {
+					conn.Write([]byte("+" + val + "\r\n"))
+				} else {
+					conn.Write([]byte("$-1\r\n")) // nil
 				}
-				conn.Write([]byte("+" + msg + "\r\n"))
-			} else {
-				conn.Write([]byte("-ERR unknown command '" + cmd + "'\r\n"))
 			}
 		default:
-			conn.Write([]byte("-ERR unknown format\r\n"))
+			conn.Write([]byte("-ERR unknown command '" + args[0] + "'\r\n"))
 		}
 	}
 }
 
-func getCommand(reader *bufio.Reader) (string, error) {
-	// Skip the length line, e.g., "$4"
-	_, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	// Read the actual command or argument
-	line, err := reader.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(line), nil
+func parseLength(s string) int {
+	var n int
+	fmt.Sscanf(s, "*%d", &n)
+	return n
 }
