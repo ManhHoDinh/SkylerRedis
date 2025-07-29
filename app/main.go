@@ -120,7 +120,9 @@ func handleConnection(conn net.Conn) {
 			if len(args) < 3{
 				conn.Write([]byte("-ERR wrong number of arguments for 'RPUSH'\r\n"))
 			} else {
-				list = append(list, args[1])
+				for i := 2; i < len(args); i++ {
+					list = append(list, args[i])
+				}
 				conn.Write([]byte(":" + strconv.Itoa(len(list)) + "\r\n"))
 			}
 		default:
