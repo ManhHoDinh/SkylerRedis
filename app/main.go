@@ -128,7 +128,6 @@ func handleConnection(conn net.Conn) {
 			if len(args) != 4 {
 				conn.Write([]byte("-ERR wrong number of arguments for 'LRANGE'\r\n"))
 			} else {
-				fmt.Println(args)
 				start, err1 := strconv.Atoi(args[2])
 				end, err2 := strconv.Atoi(args[3])
 				if err1 != nil || err2 != nil {
