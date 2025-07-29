@@ -11,7 +11,7 @@ import (
 )
 
 var store = make(map[string]Entry)
-var list = make([]string, 0)
+var rPlush = make(map[string][]string)
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
@@ -120,9 +120,9 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte("-ERR wrong number of arguments for 'RPUSH'\r\n"))
 			} else {
 				for i := 2; i < len(args); i++ {
-					list = append(list, args[i])
+					rPlush[args[1]] = append(rPlush[args[1]], args[i])
 				}
-				conn.Write([]byte(":" + strconv.Itoa(len(list)) + "\r\n"))
+				conn.Write([]byte(":" + strconv.Itoa(len(rPlush[args[1]])) + "\r\n"))
 			}
 		case "LRANGE":
 			if len(args) != 4 {
@@ -136,9 +136,8 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte("-ERR invalid start or end index\r\n"))
 				break
 			}
-
-			if  start >= len(list) || start > end {
-				// Case 1, 2, 4
+			list, exist := rPlush[args[1]]
+			if  !exist || start >= len(list) || start > end {
 				conn.Write([]byte("*0\r\n"))
 				break
 			}
