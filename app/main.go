@@ -178,10 +178,16 @@ func handleConnection(conn net.Conn) {
 			for _, item := range sublist {
 				conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(item), item)))
 			}
-
+		case "LLEN":
+			if len(args) != 2 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'LLEN'\r\n"))
+			} else {
+				conn.Write([]byte(":" + strconv.Itoa(len(rPlush[args[1]])) + "\r\n"))
+			}
 		default:
 			conn.Write([]byte("-ERR unknown command '" + args[0] + "'\r\n"))
 		}
+		
 	}
 }
 
