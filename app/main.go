@@ -127,24 +127,35 @@ func handleConnection(conn net.Conn) {
 		case "LRANGE":
 			if len(args) != 4 {
 				conn.Write([]byte("-ERR wrong number of arguments for 'LRANGE'\r\n"))
-			} else {
-				start, err1 := strconv.Atoi(args[2])
-				end, err2 := strconv.Atoi(args[3])
-				if err1 != nil || err2 != nil {
-					conn.Write([]byte("-ERR invalid start or end index\r\n"))
-					break
-				}
-				if start < 0 || end < 0 || start > end || start >= len(list) {
-					conn.Write([]byte("-ERR invalid start or end index\r\n"))
-					break
-				}
-				sublist := list[start : end+1]
-				conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(sublist))))
-				for _, item := range sublist {
-					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(item), item)))
-				}
+				break
 			}
-		
+
+			start, err1 := strconv.Atoi(args[2])
+			end, err2 := strconv.Atoi(args[3])
+			if err1 != nil || err2 != nil || start < 0 || end < 0 {
+				conn.Write([]byte("-ERR invalid start or end index\r\n"))
+				break
+			}
+
+			if  start >= len(list) || start > end {
+				// Case 1, 2, 4
+				conn.Write([]byte("*0\r\n"))
+				break
+			}
+
+			if end >= len(list) {
+				// Case 3
+				end = len(list) - 1
+			}
+
+			sublist := list[start : end+1]
+
+			// RESP encode result
+			conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(sublist))))
+			for _, item := range sublist {
+				conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(item), item)))
+			}
+
 		default:
 			conn.Write([]byte("-ERR unknown command '" + args[0] + "'\r\n"))
 		}
