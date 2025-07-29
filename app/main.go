@@ -109,8 +109,7 @@ func handleConnection(conn net.Conn) {
 				key := args[1]
 				entry, ok := store[key]
 				if !ok || (entry.expiryTime != (time.Time{}) && time.Now().After(entry.expiryTime)) {
-					// nếu có expiry và đã hết hạn
-					delete(store, key) // dọn dẹp luôn
+					delete(store, key) 
 					conn.Write([]byte("$-1\r\n"))
 				} else {
 					conn.Write([]byte("+" + entry.value + "\r\n"))
@@ -125,6 +124,28 @@ func handleConnection(conn net.Conn) {
 				}
 				conn.Write([]byte(":" + strconv.Itoa(len(list)) + "\r\n"))
 			}
+		case "LRANGE":
+			if len(args) != 4 {
+				conn.Write([]byte("-ERR wrong number of arguments for 'LRANGE'\r\n"))
+			} else {
+				fmt.Println(args)
+				start, err1 := strconv.Atoi(args[2])
+				end, err2 := strconv.Atoi(args[3])
+				if err1 != nil || err2 != nil {
+					conn.Write([]byte("-ERR invalid start or end index\r\n"))
+					break
+				}
+				if start < 0 || end < 0 || start > end || start >= len(list) {
+					conn.Write([]byte("-ERR invalid start or end index\r\n"))
+					break
+				}
+				sublist := list[start : end+1]
+				conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(sublist))))
+				for _, item := range sublist {
+					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(item), item)))
+				}
+			}
+		
 		default:
 			conn.Write([]byte("-ERR unknown command '" + args[0] + "'\r\n"))
 		}
