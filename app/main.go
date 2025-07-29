@@ -132,11 +132,26 @@ func handleConnection(conn net.Conn) {
 
 			start, err1 := strconv.Atoi(args[2])
 			end, err2 := strconv.Atoi(args[3])
-			if err1 != nil || err2 != nil || start < 0 || end < 0 {
+			
+			if err1 != nil || err2 != nil {
 				conn.Write([]byte("-ERR invalid start or end index\r\n"))
 				break
 			}
 			list, exist := rPlush[args[1]]
+			
+			if start < 0 {
+				start = len(list) + start
+				if start < 0 {
+					start = 0
+				}	
+			}
+			if end < 0 {
+				end = len(list) + end
+				if end < 0 {
+					end = 0
+				}
+			}
+
 			if  !exist || start >= len(list) || start > end {
 				conn.Write([]byte("*0\r\n"))
 				break
