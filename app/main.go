@@ -11,7 +11,7 @@ import (
 )
 
 var store = make(map[string]Entry)
-
+var list = make([]string, 0)
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:6379")
 	if err != nil {
@@ -115,6 +115,13 @@ func handleConnection(conn net.Conn) {
 				} else {
 					conn.Write([]byte("+" + entry.value + "\r\n"))
 				}
+			}
+		case "RPUSH":
+			if len(args) < 3{
+				conn.Write([]byte("-ERR wrong number of arguments for 'RPUSH'\r\n"))
+			} else {
+				list = append(list, args[1])
+				conn.Write([]byte(":" + strconv.Itoa(len(list)) + "\r\n"))
 			}
 		default:
 			conn.Write([]byte("-ERR unknown command '" + args[0] + "'\r\n"))
