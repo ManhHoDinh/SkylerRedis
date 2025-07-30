@@ -185,7 +185,7 @@ func handleConnection(conn net.Conn) {
 				conn.Write([]byte(":" + strconv.Itoa(len(rPlush[args[1]])) + "\r\n"))
 			}
 		case "LPOP":
-			if len(args) != 2 {
+			if len(args) < 2 {
 				conn.Write([]byte("-ERR wrong number of arguments for 'LPOP'\r\n"))
 			} else {
 				list, exist := rPlush[args[1]]
@@ -193,9 +193,18 @@ func handleConnection(conn net.Conn) {
 					conn.Write([]byte("$-1\r\n"))
 				} else {
 					// Pop the first element
-					
-					rPlush[args[1]] = list[1:]
-					conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[0]), list[0])))
+					start := 1
+					if len(args) == 3 {
+						val, err := strconv.Atoi(args[2])
+						if err == nil {
+							start = val
+						}
+					}
+					rPlush[args[1]] = list[start:]
+					conn.Write([]byte(fmt.Sprintf("*%d\r\n", start)))
+					for i := 0; i < start && i < len(list); i++ {
+						conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[i]), list[i])))
+					}
 				}
 			}
 
