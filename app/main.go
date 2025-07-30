@@ -193,21 +193,26 @@ func handleConnection(conn net.Conn) {
 					conn.Write([]byte("$-1\r\n"))
 				} else {
 					// Pop the first element
-					start := 1
 					if len(args) == 3 {
+						start := 1
 						val, err := strconv.Atoi(args[2])
 						if err == nil {
 							start = val
 						}
+						
+						if( start > len(list) || start < 0) {
+							start = len(list)
+						}
+						rPlush[args[1]] = list[start:]
+						conn.Write([]byte(fmt.Sprintf("*%d\r\n", start)))
+						for i := 0; i < start && i < len(list); i++ {
+							conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[i]), list[i])))
+						}
+					} else {
+						rPlush[args[1]] = list[1:]
+						conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[0]), list[0])))
 					}
-					if( start > len(list) || start < 0) {
-						start = len(list)
-					}
-					rPlush[args[1]] = list[start:]
-					conn.Write([]byte(fmt.Sprintf("*%d\r\n", start)))
-					for i := 0; i < start && i < len(list); i++ {
-						conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(list[i]), list[i])))
-					}
+					
 				}
 			}
 
