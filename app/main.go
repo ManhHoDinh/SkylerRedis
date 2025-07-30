@@ -200,6 +200,9 @@ func handleConnection(conn net.Conn) {
 							start = val
 						}
 					}
+					if( start > len(list) || start < 0) {
+						start = len(list)
+					}
 					rPlush[args[1]] = list[start:]
 					conn.Write([]byte(fmt.Sprintf("*%d\r\n", start)))
 					for i := 0; i < start && i < len(list); i++ {
