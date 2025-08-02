@@ -122,7 +122,7 @@ func handleLPush(conn net.Conn, args []string) {
 
 	// Wake up blocked BLPOP clients if any
 	if cond, ok := condMap[key]; ok {
-		cond.Broadcast()
+		cond.Signal()
 	}
 
 	writeInteger(conn, len(rPlush[key]))
@@ -145,7 +145,7 @@ func handleRPush(conn net.Conn, args []string) {
 
 	// Wake up blocked BLPOP clients if any
 	if cond, ok := condMap[key]; ok {
-		cond.Broadcast()
+		cond.Signal()
 	}
 
 	writeInteger(conn, len(rPlush[key]))
@@ -249,7 +249,7 @@ func handleBLPop(conn net.Conn, args []string) {
 		return
 	}
 
-	// Only 0 is supported for now
+	// For simplicity, support only 0 (block indefinitely)
 	if timeout != 0 {
 		writeNull(conn)
 		return
@@ -264,7 +264,6 @@ func handleBLPop(conn net.Conn, args []string) {
 				rPlush[key] = list[1:]
 				mu.Unlock()
 
-				// Return RESP
 				conn.Write([]byte("*2\r\n"))
 				writeBulkString(conn, key)
 				writeBulkString(conn, value)
@@ -272,19 +271,16 @@ func handleBLPop(conn net.Conn, args []string) {
 			}
 		}
 
-		// Register cond for each key
+		// Make sure condition variable exists for each key
 		for _, key := range keys {
 			if _, ok := condMap[key]; !ok {
 				condMap[key] = sync.NewCond(&mu)
 			}
 		}
 
-		// Block until signaled (release mu during wait)
-		// ⚠️ Wait will re-acquire mu after waking
+		// Wait until push wakes us
 		condMap[keys[0]].Wait()
 		mu.Unlock()
-
-		// Loop again to check if list has value
 	}
 }
 
@@ -331,9 +327,14 @@ func writeSimpleString(conn net.Conn, msg string) {
 	conn.Write([]byte("+" + msg + "\r\n"))
 }
 
-func writeBulkString(conn net.Conn, msg string) {
-	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(msg), msg)))
+func writeBulkString(conn net.Conn, s string) {
+	if s == "" {
+		conn.Write([]byte("$-1\r\n"))
+		return
+	}
+	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)))
 }
+
 
 func writeInteger(conn net.Conn, n int) {
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", n)))
