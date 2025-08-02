@@ -121,9 +121,7 @@ func handleLPush(conn net.Conn, args []string) {
 	}
 
 	// Wake up blocked BLPOP clients if any
-	if cond, ok := condMap[key]; ok {
-		cond.Signal()
-	}
+	wakeUpFirstBlocking(key)
 
 	writeInteger(conn, len(rPlush[key]))
 }
@@ -143,10 +141,7 @@ func handleRPush(conn net.Conn, args []string) {
 		rPlush[key] = append(rPlush[key], args[i])
 	}
 
-	// Wake up blocked BLPOP clients if any
-	if cond, ok := condMap[key]; ok {
-		cond.Signal()
-	}
+	wakeUpFirstBlocking(key)
 
 	writeInteger(conn, len(rPlush[key]))
 }
@@ -231,58 +226,89 @@ func handleLPop(conn net.Conn, args []string) {
 }
 
 var (
-	condMap = make(map[string]*sync.Cond)
-	mu      = sync.Mutex{}
+	blockings = make(map[string][]types.BlockingRequest)
+	mu        = sync.Mutex{}
 )
 func handleBLPop(conn net.Conn, args []string) {
-	if len(args) < 3 {
+	if len(args) != 3 {
 		writeError(conn, "wrong number of arguments for 'BLPOP'")
 		return
 	}
 
-	keys := args[1 : len(args)-1]
-	timeoutStr := args[len(args)-1]
+	mu.Lock()
+	key := args[1]
+	if list, ok := rPlush[key]; ok && len(list) > 0 {
+		value := list[0]
+		rPlush[key] = list[1:]
+		mu.Unlock()
 
-	timeout, err := strconv.Atoi(timeoutStr)
+		conn.Write([]byte("*2\r\n"))
+		writeBulkString(conn, key)
+		writeBulkString(conn, value)
+		return
+	}
+
+
+	timeoutStr := args[2]
+	timeout, err := strconv.ParseFloat(timeoutStr, 64)
 	if err != nil {
-		writeError(conn, "timeout must be an integer")
+		writeError(conn, "timeout must be a number")
 		return
 	}
 
-	// For simplicity, support only 0 (block indefinitely)
-	if timeout != 0 {
-		writeNull(conn)
-		return
+	ch := make(chan string, 1)
+	blocking := types.BlockingRequest{
+		Key:     key,
+		Ch:      ch,
+		Timeout: time.Duration(timeout * float64(time.Second)),
 	}
+	blockings[key] = append(blockings[key], blocking)
+	mu.Unlock()
 
-	for {
-		mu.Lock()
-		for _, key := range keys {
+	if timeout == 0 {
+		_, ok := <-ch
+		if !ok {
+			writeBulkString(conn, "")
+			return
+		}
+		list := rPlush[key]
+		if len(list) > 0 {
+			value := list[0]
+			rPlush[key] = list[1:]
+			conn.Write([]byte("*2\r\n"))
+			writeBulkString(conn, key)
+			writeBulkString(conn, value)
+			return
+		}
+	} else {
+		select {
+		case <-time.After(blocking.Timeout):
+			mu.Lock()
+			list := blockings[key]
+			newList := []types.BlockingRequest{}
+			for _, r := range list {
+				if r.Ch != ch {
+					newList = append(newList, r)
+				}
+			}
+			blockings[key] = newList
+			mu.Unlock()
+			writeNull(conn)
+			return
+		case key := <-ch:
 			list := rPlush[key]
 			if len(list) > 0 {
 				value := list[0]
 				rPlush[key] = list[1:]
-				mu.Unlock()
-
 				conn.Write([]byte("*2\r\n"))
 				writeBulkString(conn, key)
 				writeBulkString(conn, value)
 				return
 			}
 		}
-
-		// Make sure condition variable exists for each key
-		for _, key := range keys {
-			if _, ok := condMap[key]; !ok {
-				condMap[key] = sync.NewCond(&mu)
-			}
-		}
-
-		// Wait until push wakes us
-		condMap[keys[0]].Wait()
-		mu.Unlock()
 	}
 }
+
 
 
 // Helpers
@@ -342,4 +368,15 @@ func writeInteger(conn net.Conn, n int) {
 
 func writeNull(conn net.Conn) {
 	conn.Write([]byte("$-1\r\n"))
+}
+
+func wakeUpFirstBlocking(key string) {
+	if list, ok := blockings[key]; ok && len(list) > 0 {
+		req := list[0]
+		blockings[key] = list[1:]
+		select {
+		case req.Ch <- key:
+		default:
+		}
+	}
 }
