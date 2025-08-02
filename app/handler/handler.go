@@ -73,7 +73,7 @@ func handleINCR(conn net.Conn, args []string) {
 
 	val, err := strconv.Atoi(entry.Value)
 	if err != nil {
-		writeError(conn, "value is not an integer")
+		writeError(conn, "value is not an integer or out of range")
 		return
 	}
 	val++
