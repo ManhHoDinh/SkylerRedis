@@ -51,10 +51,34 @@ func HandleConnection(conn net.Conn) {
 			handleLPop(conn, args)
 		case "BLPOP":
 			handleBLPop(conn, args)
+		case "INCR":
+			handleINCR(conn, args)
 		default:
 			writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
 	}
+}
+
+func handleINCR(conn net.Conn, args []string) {
+	if len(args) != 2 {
+		writeError(conn, "wrong number of arguments for 'INCR'")
+		return
+	}
+	key := args[1]
+	entry, exists := store[key]
+	if !exists || entry.ExpiryTime != (time.Time{}) && time.Now().After(entry.ExpiryTime) {
+		store[key] = types.Entry{Value: "0", ExpiryTime: time.Time{}}
+		entry = store[key]
+	}
+
+	val, err := strconv.Atoi(entry.Value)
+	if err != nil {
+		writeError(conn, "value is not an integer")
+		return
+	}
+	val++
+	store[key] = types.Entry{Value: strconv.Itoa(val), ExpiryTime: entry.ExpiryTime}
+	writeInteger(conn, val)
 }
 
 func handlePing(conn net.Conn) {
