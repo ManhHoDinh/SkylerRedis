@@ -14,7 +14,8 @@ import (
 
 var store = make(map[string]types.Entry)
 var rPlush = make(map[string][]string)
-
+var queue = make([][]string, 0)
+var isMulti = false
 func HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -27,36 +28,58 @@ func HandleConnection(conn net.Conn) {
 		}
 		if len(args) == 0 {
 			writeError(conn, "empty command")
-			continue
+			return
 		}
-
-		switch strings.ToUpper(args[0]) {
-		case "PING":
-			handlePing(conn)
-		case "ECHO":
-			handleEcho(conn, args)
-		case "SET":
-			handleSet(conn, args)
-		case "GET":
-			handleGet(conn, args)
-		case "LPUSH":
-			handleLPush(conn, args)
-		case "RPUSH":
-			handleRPush(conn, args)
-		case "LRANGE":
-			handleLRange(conn, args)
-		case "LLEN":
-			handleLLen(conn, args)
-		case "LPOP":
-			handleLPop(conn, args)
-		case "BLPOP":
-			handleBLPop(conn, args)
-		case "INCR":
-			handleINCR(conn, args)
-		default:
-			writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
-		}
+		handleCommand(conn, args)
 	}
+}
+func handleCommand(conn net.Conn, args []string) {
+	if isMulti {
+		if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
+			isMulti = false
+			for _, cmd := range queue {
+				handleCommand(conn, cmd)
+			}
+			queue = nil
+			return
+		}
+		queue = append(queue, args)
+		writeSimpleString(conn, "QUEUED")
+		return
+	} else {
+		switch strings.ToUpper(args[0]) {
+			case "PING":
+				handlePing(conn)
+			case "ECHO":
+				handleEcho(conn, args)
+			case "SET":
+				handleSet(conn, args)
+			case "GET":
+				handleGet(conn, args)
+			case "LPUSH":
+				handleLPush(conn, args)
+			case "RPUSH":
+				handleRPush(conn, args)
+			case "LRANGE":
+				handleLRange(conn, args)
+			case "LLEN":
+				handleLLen(conn, args)
+			case "LPOP":
+				handleLPop(conn, args)
+			case "BLPOP":
+				handleBLPop(conn, args)
+			case "INCR":
+				handleINCR(conn, args)
+			case "MULTI":
+				handleMULTI(conn, args)
+			default:
+				writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
+			}
+	}
+}
+func handleMULTI(conn net.Conn, args []string) {
+	isMulti = true
+	writeSimpleString(conn, "OK")
 }
 
 func handleINCR(conn net.Conn, args []string) {
