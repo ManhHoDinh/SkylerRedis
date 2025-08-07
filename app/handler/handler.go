@@ -15,11 +15,14 @@ import (
 var store = make(map[string]types.Entry)
 var rPlush = make(map[string][]string)
 var queue = make([][]string, 0)
-var isMulti = false
+var isMulti = make(map[net.Conn]bool)
+var (
+	blockings = make(map[string][]types.BlockingRequest)
+	mu        = sync.Mutex{}
+)
 func HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
-
 	for {
 		args, err := parseArgs(conn, reader)
 		if err != nil {
@@ -35,11 +38,11 @@ func HandleConnection(conn net.Conn) {
 }
 func handleCommand(conn net.Conn, args []string) {
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
-			if !isMulti {
+			if !isMulti[conn] {
 				writeError(conn, "EXEC without MULTI")
 				return
 			}
-			isMulti = false
+			isMulti[conn] = false
 			if len(queue) == 0 {
 				conn.Write([]byte(fmt.Sprintf("*%d\r\n", 0)))
 			}
@@ -49,7 +52,7 @@ func handleCommand(conn net.Conn, args []string) {
 			queue = nil
 			return
 		}
-	if isMulti {
+	if isMulti[conn] {
 		queue = append(queue, args)
 		writeSimpleString(conn, "QUEUED")
 		return
@@ -85,7 +88,7 @@ func handleCommand(conn net.Conn, args []string) {
 	}
 }
 func handleMULTI(conn net.Conn, args []string) {
-	isMulti = true
+	isMulti[conn] = true
 	writeSimpleString(conn, "OK")
 }
 
@@ -279,10 +282,6 @@ func handleLPop(conn net.Conn, args []string) {
 	}
 }
 
-var (
-	blockings = make(map[string][]types.BlockingRequest)
-	mu        = sync.Mutex{}
-)
 func handleBLPop(conn net.Conn, args []string) {
 	if len(args) != 3 {
 		writeError(conn, "wrong number of arguments for 'BLPOP'")
