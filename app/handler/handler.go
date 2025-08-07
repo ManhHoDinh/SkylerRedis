@@ -34,8 +34,11 @@ func HandleConnection(conn net.Conn) {
 	}
 }
 func handleCommand(conn net.Conn, args []string) {
-	if isMulti {
-		if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
+	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
+			if !isMulti {
+				writeError(conn, "EXEC without MULTI")
+				return
+			}
 			isMulti = false
 			for _, cmd := range queue {
 				handleCommand(conn, cmd)
@@ -43,6 +46,7 @@ func handleCommand(conn net.Conn, args []string) {
 			queue = nil
 			return
 		}
+	if isMulti {
 		queue = append(queue, args)
 		writeSimpleString(conn, "QUEUED")
 		return
