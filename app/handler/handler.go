@@ -43,9 +43,7 @@ func handleCommand(conn net.Conn, args []string) {
 				return
 			}
 			isMulti[conn] = false
-			if len(queue) == 0 {
-				conn.Write([]byte(fmt.Sprintf("*%d\r\n", 0)))
-			}
+			conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(queue))))
 			for _, cmd := range queue {
 				handleCommand(conn, cmd)
 			}
