@@ -50,6 +50,17 @@ func handleCommand(conn net.Conn, args []string) {
 			queue = nil
 			return
 		}
+	if len(args) == 1 && strings.ToUpper(args[0]) == "DISCARD" {
+		if !isMulti[conn] {
+			writeError(conn, "DISCARD without MULTI")
+			return	
+		}
+		isMulti[conn] = false
+		queue = nil
+		writeSimpleString(conn, "OK")
+		return
+	}
+
 	if isMulti[conn] {
 		queue = append(queue, args)
 		writeSimpleString(conn, "QUEUED")
