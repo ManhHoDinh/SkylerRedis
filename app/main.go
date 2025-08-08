@@ -1,11 +1,11 @@
 package main
 
 import (
+	"SkylerRedis/app/handler"
 	"flag"
 	"fmt"
 	"net"
 	"os"
-	"skylerRedis/app/handler"
 )
 
 var port = flag.String("port", "6379", "Port for redis server")

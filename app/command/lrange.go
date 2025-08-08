@@ -1,10 +1,10 @@
 package command
 
 import (
+	"SkylerRedis/app/memory"
+	"SkylerRedis/app/utils"
 	"fmt"
 	"net"
-	"skylerRedis/app/memory"
-	"skylerRedis/app/utils"
 	"strconv"
 )
 

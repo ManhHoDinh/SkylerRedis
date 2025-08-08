@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"SkylerRedis/app/command"
+	"SkylerRedis/app/utils"
 	"bufio"
 	"net"
-	"skylerRedis/app/command"
-	"skylerRedis/app/utils"
 )
 
 func HandleConnection(conn net.Conn) {
