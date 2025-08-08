@@ -107,7 +107,7 @@ func handleINFO(conn net.Conn, args []string) {
 	}
 	switch strings.ToUpper(args[1]) {
 	case "REPLICATION":
-		writeBulkString(conn, "Role:master\r\n")
+		writeBulkString(conn, "role:master")
 	default:
 		writeError(conn, fmt.Sprintf("unknown INFO section '%s'", args[1]))
 	}
