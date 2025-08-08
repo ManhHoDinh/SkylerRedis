@@ -1,16 +1,19 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"redis/app/handler"
 )
 
+var port = flag.String("port", "6379", "Port for redis server")
+
 func main() {
-	l, err := net.Listen("tcp", "0.0.0.0:6379")
+	l, err := net.Listen("tcp", "0.0.0.0:"+*port)
 	if err != nil {
-		fmt.Println("Failed to bind to port 6379")
+		fmt.Println("Failed to bind to port", *port)
 		os.Exit(1)
 	}
 
@@ -23,4 +26,3 @@ func main() {
 		go handler.HandleConnection(conn)
 	}
 }
-
