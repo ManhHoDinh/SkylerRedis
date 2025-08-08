@@ -14,12 +14,13 @@ import (
 
 var store = make(map[string]types.Entry)
 var rPlush = make(map[string][]string)
-var queue = make([][]string, 0)
+var queue = make(map[net.Conn][][]string, 0)
 var isMulti = make(map[net.Conn]bool)
 var (
 	blockings = make(map[string][]types.BlockingRequest)
 	mu        = sync.Mutex{}
 )
+
 func HandleConnection(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
@@ -38,62 +39,62 @@ func HandleConnection(conn net.Conn) {
 }
 func handleCommand(conn net.Conn, args []string) {
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
-			if !isMulti[conn] {
-				writeError(conn, "EXEC without MULTI")
-				return
-			}
-			isMulti[conn] = false
-			conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(queue))))
-			for _, cmd := range queue {
-				handleCommand(conn, cmd)
-			}
-			queue = nil
+		if !isMulti[conn] {
+			writeError(conn, "EXEC without MULTI")
 			return
 		}
+		isMulti[conn] = false
+		conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(queue[conn]))))
+		for _, cmd := range queue[conn] {
+			handleCommand(conn, cmd)
+		}
+		queue[conn] = nil
+		return
+	}
 	if len(args) == 1 && strings.ToUpper(args[0]) == "DISCARD" {
 		if !isMulti[conn] {
 			writeError(conn, "DISCARD without MULTI")
-			return	
+			return
 		}
 		isMulti[conn] = false
-		queue = nil
+		queue[conn] = nil
 		writeSimpleString(conn, "OK")
 		return
 	}
 
 	if isMulti[conn] {
-		queue = append(queue, args)
+		queue[conn] = append(queue[conn], args)
 		writeSimpleString(conn, "QUEUED")
 		return
 	} else {
 		switch strings.ToUpper(args[0]) {
-			case "PING":
-				handlePing(conn)
-			case "ECHO":
-				handleEcho(conn, args)
-			case "SET":
-				handleSet(conn, args)
-			case "GET":
-				handleGet(conn, args)
-			case "LPUSH":
-				handleLPush(conn, args)
-			case "RPUSH":
-				handleRPush(conn, args)
-			case "LRANGE":
-				handleLRange(conn, args)
-			case "LLEN":
-				handleLLen(conn, args)
-			case "LPOP":
-				handleLPop(conn, args)
-			case "BLPOP":
-				handleBLPop(conn, args)
-			case "INCR":
-				handleINCR(conn, args)
-			case "MULTI":
-				handleMULTI(conn, args)
-			default:
-				writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
-			}
+		case "PING":
+			handlePing(conn)
+		case "ECHO":
+			handleEcho(conn, args)
+		case "SET":
+			handleSet(conn, args)
+		case "GET":
+			handleGet(conn, args)
+		case "LPUSH":
+			handleLPush(conn, args)
+		case "RPUSH":
+			handleRPush(conn, args)
+		case "LRANGE":
+			handleLRange(conn, args)
+		case "LLEN":
+			handleLLen(conn, args)
+		case "LPOP":
+			handleLPop(conn, args)
+		case "BLPOP":
+			handleBLPop(conn, args)
+		case "INCR":
+			handleINCR(conn, args)
+		case "MULTI":
+			handleMULTI(conn, args)
+		default:
+			writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
+		}
 	}
 }
 func handleMULTI(conn net.Conn, args []string) {
@@ -212,7 +213,6 @@ func handleRPush(conn net.Conn, args []string) {
 	writeInteger(conn, len(rPlush[key]))
 }
 
-
 func handleLRange(conn net.Conn, args []string) {
 	if len(args) != 4 {
 		writeError(conn, "wrong number of arguments for 'LRANGE'")
@@ -310,7 +310,6 @@ func handleBLPop(conn net.Conn, args []string) {
 		return
 	}
 
-
 	timeoutStr := args[2]
 	timeout, err := strconv.ParseFloat(timeoutStr, 64)
 	if err != nil {
@@ -371,8 +370,6 @@ func handleBLPop(conn net.Conn, args []string) {
 	}
 }
 
-
-
 // Helpers
 
 func parseArgs(conn net.Conn, reader *bufio.Reader) ([]string, error) {
@@ -422,7 +419,6 @@ func writeBulkString(conn net.Conn, s string) {
 	}
 	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)))
 }
-
 
 func writeInteger(conn net.Conn, n int) {
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", n)))
