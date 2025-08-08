@@ -92,9 +92,24 @@ func handleCommand(conn net.Conn, args []string) {
 			handleINCR(conn, args)
 		case "MULTI":
 			handleMULTI(conn, args)
+		case "INFO":
+			handleINFO(conn, args)
 		default:
 			writeError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
+	}
+}
+
+func handleINFO(conn net.Conn, args []string) {
+	if len(args) != 2 {
+		writeError(conn, "wrong number of arguments for 'INFO'")
+		return
+	}
+	switch strings.ToUpper(args[1]) {
+	case "REPLICATION":
+		writeBulkString(conn, "Role:master\r\n")
+	default:
+		writeError(conn, fmt.Sprintf("unknown INFO section '%s'", args[1]))
 	}
 }
 func handleMULTI(conn net.Conn, args []string) {
