@@ -11,6 +11,7 @@ import (
 var port = flag.String("port", "6379", "Port for redis server")
 
 func main() {
+	flag.Parse() // Parse command line arguments
 	l, err := net.Listen("tcp", "0.0.0.0:"+*port)
 	if err != nil {
 		fmt.Println("Failed to bind to port", *port)
