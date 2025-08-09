@@ -3,12 +3,13 @@ package command
 import (
 	"SkylerRedis/app/memory"
 	"SkylerRedis/app/utils"
+	"SkylerRedis/app/server"
 	"fmt"
 	"net"
 	"strings"
 )
 
-func HandleCommand(conn net.Conn, args []string) {
+func HandleCommand(conn net.Conn, args []string, server server.Server) {
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
 		if !memory.IsMulti[conn] {
 			utils.WriteError(conn, "EXEC without MULTI")
@@ -17,7 +18,7 @@ func HandleCommand(conn net.Conn, args []string) {
 		memory.IsMulti[conn] = false
 		conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(memory.Queue[conn]))))
 		for _, cmd := range memory.Queue[conn] {
-			HandleCommand(conn, cmd)
+			HandleCommand(conn, cmd, server)
 		}
 		memory.Queue[conn] = nil
 		return
@@ -64,7 +65,7 @@ func HandleCommand(conn net.Conn, args []string) {
 		case "MULTI":
 			handleMULTI(conn, args)
 		case "INFO":
-			handleINFO(conn, args)
+			handleINFO(conn, args, server)
 		default:
 			utils.WriteError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}

@@ -20,4 +20,5 @@ RUN go build -o redis_clone ./app/main.go
 EXPOSE 6379
 
 # Run the compiled binary
-CMD ["./redis_clone"]
+ENTRYPOINT ["./redis_clone"]
+

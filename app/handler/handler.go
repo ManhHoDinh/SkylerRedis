@@ -3,11 +3,12 @@ package handler
 import (
 	"SkylerRedis/app/command"
 	"SkylerRedis/app/utils"
+	"SkylerRedis/app/server"
 	"bufio"
 	"net"
 )
 
-func HandleConnection(conn net.Conn) {
+func HandleConnection(conn net.Conn, server server.Server) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
 	for {
@@ -20,7 +21,7 @@ func HandleConnection(conn net.Conn) {
 			utils.WriteError(conn, "empty command")
 			return
 		}
-		command.HandleCommand(conn, args)
+		command.HandleCommand(conn, args, server)
 	}
 }
 
