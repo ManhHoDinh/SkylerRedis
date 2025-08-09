@@ -2,8 +2,8 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
-	"SkylerRedis/app/utils"
 	"SkylerRedis/app/server"
+	"SkylerRedis/app/utils"
 	"fmt"
 	"net"
 	"strings"
@@ -36,7 +36,7 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 
 	if memory.IsMulti[conn] {
 		memory.Queue[conn] = append(memory.Queue[conn], args)
-		utils.WriteSimpleString(conn, "memory.QueueD")
+		utils.WriteSimpleString(conn, "QUEUE")
 		return
 	} else {
 		switch strings.ToUpper(args[0]) {
