@@ -36,7 +36,7 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 
 	if memory.IsMulti[conn] {
 		memory.Queue[conn] = append(memory.Queue[conn], args)
-		utils.WriteSimpleString(conn, "QUEUE")
+		utils.WriteSimpleString(conn, "QUEUED")
 		return
 	} else {
 		switch strings.ToUpper(args[0]) {
