@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
+	"time"
 )
 
 var port = flag.String("port", "6379", "Port for redis server")
@@ -24,19 +26,17 @@ func main() {
 	}
 	if *replicaof != "" {
 		Server.IsMaster = false
-	} else{
-		Server.IsMaster = true
-	}
-	fmt.Println("Server is running on port", *port)
-	fmt.Println("Replica of:", *replicaof)
-	if !Server.IsMaster {
-		fmt.Println("Running as a replica of", *replicaof)
+		fmt.Println("Server is running on port", *port)
+		fmt.Println("Replica of:", *replicaof)
+
 	} else {
+		Server.IsMaster = true
 		fmt.Println("Running as master")
 	}
 
 
-	for {
+	go func() {
+		for {
 		conn, err := l.Accept()
 		if err != nil {
 			fmt.Println("Failed to accept connection:", err)
@@ -45,4 +45,33 @@ func main() {
 
 		go handler.HandleConnection(conn, Server)
 	}
+	}()
+	if *replicaof != "" {
+		parts := strings.Split(*replicaof, " ")
+		masterAddr := parts[0] + ":" + parts[1]
+
+		go func() {
+        for {
+            conn, err := net.Dial("tcp", masterAddr)
+            if err != nil {
+                fmt.Println("Failed to connect to master:", err)
+                time.Sleep(5 * time.Second)
+                continue
+            }
+
+            fmt.Println("Connected to master:", masterAddr)
+            for {
+                _, err := conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
+                if err != nil {
+                    fmt.Println("Connection to master lost:", err)
+                    conn.Close()
+                    break
+                }
+                fmt.Println("Sent PING to master")
+                time.Sleep(5 * time.Second)
+            }
+        }
+    }()
+	}
+	select {} // Keep the main goroutine running
 }

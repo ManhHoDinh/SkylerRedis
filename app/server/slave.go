@@ -1,5 +1,6 @@
 package server
 
+
 type Slave struct {
 	*Server
 	MasterAddr string

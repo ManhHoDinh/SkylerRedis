@@ -1,8 +1,8 @@
 package command
 
 import (
-	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
+	"SkylerRedis/app/server"
 	"fmt"
 	"net"
 	"strings"
