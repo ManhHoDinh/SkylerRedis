@@ -16,7 +16,8 @@ func handleINFO(conn net.Conn, args []string, server server.Server) {
 	switch strings.ToUpper(args[1]) {
 	case "REPLICATION":
 		if server.IsMaster {
-			utils.WriteBulkString(conn, "role:master")
+			utils.WriteBulkString(conn,
+				fmt.Sprintf("role:master\nmaster_replid:%s\nmaster_repl_offset:0", "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"))
 		} else {
 			utils.WriteBulkString(conn, "role:slave")
 		}
