@@ -46,6 +46,10 @@ func main() {
 		go handler.HandleConnection(conn, Server)
 	}
 	}()
+	go sendToMaster()
+	select {} // Keep the main goroutine running
+}
+func sendToMaster(){
 	if *replicaof != "" {
 		parts := strings.Split(*replicaof, " ")
 		masterAddr := parts[0] + ":" + parts[1]
@@ -64,7 +68,7 @@ func main() {
 			}
 			fmt.Println("Sent PING to master")
 
-			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$" + fmt.Sprintf("%d", len(*port)) + "\r\n" + *port + "\r\n"))
+			conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%d\r\n", *port)))
 			if err != nil {
 				fmt.Println("Connection to master lost:", err)
 				conn.Close()
@@ -79,5 +83,4 @@ func main() {
 			fmt.Println("Sent Second REPLCONF to master")
 				
 	}
-	select {} // Keep the main goroutine running
 }
