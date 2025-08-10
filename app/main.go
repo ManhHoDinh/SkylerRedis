@@ -67,7 +67,7 @@ func sendToMaster(){
 				conn.Close()
 			}
 			fmt.Println("Sent PING to master")
-			time.Sleep(30 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			_, err = conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%s\r\n", *port)))
 
 			if err != nil {
@@ -75,7 +75,7 @@ func sendToMaster(){
 				conn.Close()
 			}
 			fmt.Println("Sent first REPLCONF to master")
-			time.Sleep(30 * time.Millisecond)
+			time.Sleep(5 * time.Millisecond)
 			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"))
 			if err != nil {
 				fmt.Println("Connection to master lost:", err)
