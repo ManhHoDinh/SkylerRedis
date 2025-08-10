@@ -75,7 +75,7 @@ func sendToMaster(){
 				conn.Close()
 			}
 			fmt.Println("Sent first REPLCONF to master")
-			
+			time.Sleep(30 * time.Millisecond)
 			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"))
 			if err != nil {
 				fmt.Println("Connection to master lost:", err)
