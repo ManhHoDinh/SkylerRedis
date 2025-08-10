@@ -1,0 +1,13 @@
+services:
+  master:
+    image: redis-clone
+    ports:
+      - "6379:6379"
+
+  slave:
+    image: redis-clone
+    ports:
+      - "6378:6378"
+    command: --replicaof="master 6379"
+    depends_on:
+      - master

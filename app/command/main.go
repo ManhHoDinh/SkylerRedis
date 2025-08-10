@@ -39,6 +39,9 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 		utils.WriteSimpleString(conn, "QUEUED")
 		return
 	} else {
+		fmt.Println("Handling command:", args)
+		fmt.Println("First command:", args[0])
+		
 		switch strings.ToUpper(args[0]) {
 		case "PING":
 			handlePing(conn)
@@ -66,6 +69,8 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 			handleMULTI(conn, args)
 		case "INFO":
 			handleINFO(conn, args, server)
+		case "REPLCONF":
+			handleREPLCONF(conn, args)
 		default:
 			utils.WriteError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}

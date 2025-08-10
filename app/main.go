@@ -50,28 +50,34 @@ func main() {
 		parts := strings.Split(*replicaof, " ")
 		masterAddr := parts[0] + ":" + parts[1]
 
-		go func() {
-        for {
-            conn, err := net.Dial("tcp", masterAddr)
-            if err != nil {
-                fmt.Println("Failed to connect to master:", err)
-                time.Sleep(5 * time.Second)
-                continue
-            }
+		conn, err := net.Dial("tcp", masterAddr)
+			if err != nil {
+				fmt.Println("Failed to connect to master:", err)
+				time.Sleep(5 * time.Second)
+			}
 
-            fmt.Println("Connected to master:", masterAddr)
-            for {
-                _, err := conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
-                if err != nil {
-                    fmt.Println("Connection to master lost:", err)
-                    conn.Close()
-                    break
-                }
-                fmt.Println("Sent PING to master")
-                time.Sleep(5 * time.Second)
-            }
-        }
-    }()
+			fmt.Println("Connected to master:", masterAddr)
+			_, err = conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				conn.Close()
+			}
+			fmt.Println("Sent PING to master")
+
+			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$" + fmt.Sprintf("%d", len(*port)) + "\r\n" + *port + "\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				conn.Close()
+			}
+			fmt.Println("Sent first REPLCONF to master")
+			
+			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				conn.Close()
+			}
+			fmt.Println("Sent Second REPLCONF to master")
+				
 	}
 	select {} // Keep the main goroutine running
 }
