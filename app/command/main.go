@@ -41,7 +41,7 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 	} else {
 		fmt.Println("Handling command:", args)
 		fmt.Println("First command:", args[0])
-		
+
 		switch strings.ToUpper(args[0]) {
 		case "PING":
 			handlePing(conn)
@@ -71,6 +71,8 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 			handleINFO(conn, args, server)
 		case "REPLCONF":
 			handleREPLCONF(conn, args)
+		case "PSYNC":
+			handlePSYNC(conn, args, server)
 		default:
 			utils.WriteError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
