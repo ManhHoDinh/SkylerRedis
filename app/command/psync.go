@@ -1,14 +1,10 @@
 package command
 
 import (
-	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
 	"net"
 )
 
-func handlePSYNC(conn net.Conn, args []string, server server.Server) {
-	if !server.IsMaster {
-		utils.WriteError(conn, "PSYNC can only be called by master")
-		return
-	}
+func handlePSYNC(conn net.Conn, args []string) {
+	utils.WriteSimpleString(conn, "FULLRESYNC 8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb 0")
 }

@@ -72,7 +72,7 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 		case "REPLCONF":
 			handleREPLCONF(conn, args)
 		case "PSYNC":
-			handlePSYNC(conn, args, server)
+			handlePSYNC(conn, args)
 		default:
 			utils.WriteError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
