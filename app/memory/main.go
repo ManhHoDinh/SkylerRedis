@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"SkylerRedis/app/server"
 	"net"
 	"sync"
 )
@@ -13,3 +14,4 @@ var (
 	Blockings = make(map[string][]BlockingRequest)
 	Mu        = sync.Mutex{}
 )
+var Master = server.Master{Slaves: make([]server.Slave, 0)}

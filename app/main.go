@@ -2,6 +2,7 @@ package main
 
 import (
 	"SkylerRedis/app/handler"
+	"SkylerRedis/app/memory"
 	"SkylerRedis/app/server"
 	"flag"
 	"fmt"
@@ -13,7 +14,6 @@ import (
 
 var port = flag.String("port", "6379", "Port for redis server")
 var replicaof = flag.String("replicaof", "", "Address of the master server")
-var Server server.Server
 
 func main() {
 	flag.Parse() // Parse command line arguments
@@ -22,17 +22,31 @@ func main() {
 		fmt.Println("Failed to bind to port", *port)
 		os.Exit(1)
 	}
-	Server = server.Server{
-		Port: *port,
-	}
+	Server := server.Server{}
 	if *replicaof != "" {
-		Server.IsMaster = false
 		fmt.Println("Server is running on port", *port)
 		fmt.Println("Replica of:", *replicaof)
 
+		Server.SeverId = len(memory.Master.Slaves) + 1
+		Server.Addr = "slave:" + *port
+		slave := server.Slave{
+			Master: memory.Master,
+			Server: &Server,
+		}
+		if len(memory.Master.Slaves) == 0 {
+			memory.Master.Slaves = make([]server.Slave, 0)
+		}
+		memory.Master.Slaves = append(memory.Master.Slaves, slave)
+		fmt.Println("Slave ID:", Server.SeverId)
+		fmt.Println(memory.Master.Slaves)
+		fmt.Println((memory.Master))
 	} else {
-		Server.IsMaster = true
 		fmt.Println("Running as master")
+		Server.SeverId = 0
+		Server.IsMaster = true
+		Server.Addr = "master:" + *port
+		memory.Master.Server = &Server
+		fmt.Println((memory.Master))
 	}
 
 	go func() {
@@ -42,7 +56,6 @@ func main() {
 				fmt.Println("Failed to accept connection:", err)
 				continue
 			}
-
 			go handler.HandleConnection(conn, Server)
 		}
 	}()
@@ -53,7 +66,6 @@ func sendToMaster() {
 	if *replicaof != "" {
 		parts := strings.Split(*replicaof, " ")
 		masterAddr := parts[0] + ":" + parts[1]
-
 		conn, err := net.Dial("tcp", masterAddr)
 		if err != nil {
 			fmt.Println("Failed to connect to master:", err)
@@ -91,5 +103,6 @@ func sendToMaster() {
 		}
 		fmt.Println("Sent PSYNC to master")
 		time.Sleep(5 * time.Millisecond)
+		defer conn.Close()
 	}
 }

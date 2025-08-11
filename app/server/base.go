@@ -1,8 +1,8 @@
 package server
 
 type Server struct {
-	Port string
-	Addr string
-	IsMaster bool
+	SeverId     int
+	Addr        string
+	IsMaster    bool
+	IsConnected bool
 }
-
