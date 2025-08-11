@@ -89,6 +89,7 @@ func sendToMaster() {
 			fmt.Println("Connection to master lost:", err)
 			conn.Close()
 		}
-		fmt.Println("Sent Second PSYNC to master")
+		fmt.Println("Sent PSYNC to master")
+		time.Sleep(5 * time.Millisecond)
 	}
 }
