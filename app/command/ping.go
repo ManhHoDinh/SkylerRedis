@@ -1,12 +1,12 @@
 package command
 
 import (
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
 	"fmt"
-	"net"
 )
 
-func handlePing(conn net.Conn) {
+func handlePing(sever server.Server) {
 	fmt.Println("Received PING command")
-	utils.WriteSimpleString(conn, "PONG")
+	utils.WriteSimpleString(sever.Conn, "PONG")
 }

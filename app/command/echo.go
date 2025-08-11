@@ -1,14 +1,14 @@
 package command
 
 import (
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 )
 
-func handleEcho(conn net.Conn, args []string) {
+func handleEcho(server server.Server, args []string) {
 	if len(args) != 2 {
-		utils.WriteError(conn, "wrong number of arguments for 'ECHO'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'ECHO'")
 		return
 	}
-	utils.WriteSimpleString(conn, args[1])
+	utils.WriteSimpleString(server.Conn, args[1])
 }

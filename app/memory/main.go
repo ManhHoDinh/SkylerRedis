@@ -14,4 +14,4 @@ var (
 	Blockings = make(map[string][]BlockingRequest)
 	Mu        = sync.Mutex{}
 )
-var Master = server.Master{Slaves: make([]server.Slave, 0)}
+var Master = &server.Master{Slaves: make([]*server.Slave, 0)}

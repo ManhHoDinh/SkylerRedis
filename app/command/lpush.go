@@ -2,13 +2,13 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 )
 
-func handleLPush(conn net.Conn, args []string) {
+func handleLPush(server server.Server, args []string) {
 	if len(args) < 3 {
-		utils.WriteError(conn, "wrong number of arguments for 'LPUSH'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'LPUSH'")
 		return
 	}
 
@@ -23,8 +23,7 @@ func handleLPush(conn net.Conn, args []string) {
 
 	// Wake up blocked BLPOP clients if any
 	wakeUpFirstBlocking(key)
-
-	utils.WriteInteger(conn, len(memory.RPush[key]))
+	utils.WriteInteger(server.Conn, len(memory.RPush[key]))
 }
 
 func wakeUpFirstBlocking(key string) {

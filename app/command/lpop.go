@@ -2,21 +2,21 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
 	"fmt"
-	"net"
 	"strconv"
 )
 
-func handleLPop(conn net.Conn, args []string) {
+func handleLPop(server server.Server, args []string) {
 	if len(args) < 2 {
-		utils.WriteError(conn, "wrong number of arguments for 'LPOP'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'LPOP'")
 		return
 	}
 	key := args[1]
 	list := memory.RPush[key]
 	if len(list) == 0 {
-		utils.WriteNull(conn)
+		utils.WriteNull(server.Conn)
 		return
 	}
 	if len(args) == 3 {
@@ -28,12 +28,12 @@ func handleLPop(conn net.Conn, args []string) {
 			count = len(list)
 		}
 		memory.RPush[key] = list[count:]
-		conn.Write([]byte(fmt.Sprintf("*%d\r\n", count)))
+		server.Conn.Write([]byte(fmt.Sprintf("*%d\r\n", count)))
 		for i := 0; i < count; i++ {
-			utils.WriteBulkString(conn, list[i])
+			utils.WriteBulkString(server.Conn, list[i])
 		}
 	} else {
 		memory.RPush[key] = list[1:]
-		utils.WriteBulkString(conn, list[0])
+		utils.WriteBulkString(server.Conn, list[0])
 	}
 }

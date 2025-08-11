@@ -2,13 +2,13 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 )
 
-func handleRPush(conn net.Conn, args []string) {
+func handleRPush(server server.Server, args []string) {
 	if len(args) < 3 {
-		utils.WriteError(conn, "wrong number of arguments for 'RPUSH'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'RPUSH'")
 		return
 	}
 
@@ -23,5 +23,5 @@ func handleRPush(conn net.Conn, args []string) {
 
 	wakeUpFirstBlocking(key)
 
-	utils.WriteInteger(conn, len(memory.RPush[key]))
+	utils.WriteInteger(server.Conn, len(memory.RPush[key]))
 }

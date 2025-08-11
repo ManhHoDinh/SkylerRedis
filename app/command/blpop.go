@@ -2,15 +2,15 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 	"strconv"
 	"time"
 )
 
-func handleBLPop(conn net.Conn, args []string) {
+func handleBLPop(server server.Server, args []string) {
 	if len(args) != 3 {
-		utils.WriteError(conn, "wrong number of arguments for 'BLPOP'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'BLPOP'")
 		return
 	}
 
@@ -21,16 +21,16 @@ func handleBLPop(conn net.Conn, args []string) {
 		memory.RPush[key] = list[1:]
 		memory.Mu.Unlock()
 
-		conn.Write([]byte("*2\r\n"))
-		utils.WriteBulkString(conn, key)
-		utils.WriteBulkString(conn, value)
+		server.Conn.Write([]byte("*2\r\n"))
+		utils.WriteBulkString(server.Conn, key)
+		utils.WriteBulkString(server.Conn, value)
 		return
 	}
 
 	timeoutStr := args[2]
 	timeout, err := strconv.ParseFloat(timeoutStr, 64)
 	if err != nil {
-		utils.WriteError(conn, "timeout must be a number")
+		utils.WriteError(server.Conn, "timeout must be a number")
 		return
 	}
 
@@ -46,16 +46,16 @@ func handleBLPop(conn net.Conn, args []string) {
 	if timeout == 0 {
 		_, ok := <-ch
 		if !ok {
-			utils.WriteBulkString(conn, "")
+			utils.WriteBulkString(server.Conn, "")
 			return
 		}
 		list := memory.RPush[key]
 		if len(list) > 0 {
 			value := list[0]
 			memory.RPush[key] = list[1:]
-			conn.Write([]byte("*2\r\n"))
-			utils.WriteBulkString(conn, key)
-			utils.WriteBulkString(conn, value)
+			server.Conn.Write([]byte("*2\r\n"))
+			utils.WriteBulkString(server.Conn, key)
+			utils.WriteBulkString(server.Conn, value)
 			return
 		}
 	} else {
@@ -71,16 +71,16 @@ func handleBLPop(conn net.Conn, args []string) {
 			}
 			memory.Blockings[key] = newList
 			memory.Mu.Unlock()
-			utils.WriteNull(conn)
+			utils.WriteNull(server.Conn)
 			return
 		case key := <-ch:
 			list := memory.RPush[key]
 			if len(list) > 0 {
 				value := list[0]
 				memory.RPush[key] = list[1:]
-				conn.Write([]byte("*2\r\n"))
-				utils.WriteBulkString(conn, key)
-				utils.WriteBulkString(conn, value)
+				server.Conn.Write([]byte("*2\r\n"))
+				utils.WriteBulkString(server.Conn, key)
+				utils.WriteBulkString(server.Conn, value)
 				return
 			}
 		}

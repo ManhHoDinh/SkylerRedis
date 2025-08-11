@@ -2,11 +2,11 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 )
 
-func handleMULTI(conn net.Conn, args []string) {
-	memory.IsMulti[conn] = true
-	utils.WriteSimpleString(conn, "OK")
+func handleMULTI(server server.Server, args []string) {
+	memory.IsMulti[server.Conn] = true
+	utils.WriteSimpleString(server.Conn, "OK")
 }

@@ -7,35 +7,29 @@ import (
 	"SkylerRedis/app/utils"
 	"bufio"
 	"fmt"
-	"net"
-	"time"
 )
 
-func HandleConnection(conn net.Conn, server server.Server) {
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
+func HandleConnection(server server.Server) {
+	defer server.Conn.Close()
+	reader := bufio.NewReader(server.Conn)
 	for {
-		args, err := utils.ParseArgs(conn, reader)
+		args, err := utils.ParseArgs(server.Conn, reader)
 		if err != nil {
-			utils.WriteError(conn, err.Error())
+			utils.WriteError(server.Conn, err.Error())
 			continue
 		}
 		if len(args) == 0 {
-			utils.WriteError(conn, "empty command")
+			utils.WriteError(server.Conn, "empty command")
 			return
 		}
-		command.HandleCommand(conn, args, server)
+		command.HandleCommand(server, args)
 		if server.IsMaster {
 			fmt.Println("Master detected, forwarding command to slaves")
-
+			fmt.Println("Master:", memory.Master)
+			fmt.Println("Slaves:", memory.Master.Slaves)
 			for _, ser := range memory.Master.Slaves {
 				fmt.Println("Forwarding command to slave:", ser.Addr)
-				slaveConn, err := net.Dial("tcp", ser.Addr)
-				if err != nil {
-					fmt.Println("Failed to connect to ", ser.Addr, err)
-					time.Sleep(5 * time.Second)
-				}
-				command.HandleCommand(slaveConn, args, *ser.Server)
+				command.HandleCommand(*ser.Server, args)
 			}
 		}
 	}

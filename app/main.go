@@ -34,19 +34,17 @@ func main() {
 			Server: &Server,
 		}
 		if len(memory.Master.Slaves) == 0 {
-			memory.Master.Slaves = make([]server.Slave, 0)
+			memory.Master.Slaves = make([]*server.Slave, 0)
 		}
-		memory.Master.Slaves = append(memory.Master.Slaves, slave)
+		memory.Master.Slaves = append(memory.Master.Slaves, &slave)
 		fmt.Println("Slave ID:", Server.SeverId)
-		fmt.Println(memory.Master.Slaves)
-		fmt.Println((memory.Master))
+		fmt.Println("Slaves:", memory.Master.Slaves)
 	} else {
 		fmt.Println("Running as master")
 		Server.SeverId = 0
 		Server.IsMaster = true
 		Server.Addr = "master:" + *port
 		memory.Master.Server = &Server
-		fmt.Println((memory.Master))
 	}
 
 	go func() {
@@ -56,7 +54,9 @@ func main() {
 				fmt.Println("Failed to accept connection:", err)
 				continue
 			}
-			go handler.HandleConnection(conn, Server)
+			Server.Conn = conn
+			fmt.Println("Master:", memory.Master)
+			go handler.HandleConnection(Server)
 		}
 	}()
 	go sendToMaster()

@@ -1,12 +1,12 @@
 package command
 
 import (
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
 	"fmt"
-	"net"
 )
 
-func handleREPLCONF(conn net.Conn, args []string) {
+func handleREPLCONF(server server.Server, args []string) {
 	fmt.Println("Handling REPLCONF command with args:", args)
-	utils.WriteSimpleString(conn, "OK")
+	utils.WriteSimpleString(server.Conn, "OK")
 }

@@ -5,38 +5,37 @@ import (
 	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
 	"fmt"
-	"net"
 	"strings"
 )
 
-func HandleCommand(conn net.Conn, args []string, server server.Server) {
+func HandleCommand(server server.Server, args []string) {
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
-		if !memory.IsMulti[conn] {
-			utils.WriteError(conn, "EXEC without MULTI")
+		if !memory.IsMulti[server.Conn] {
+			utils.WriteError(server.Conn, "EXEC without MULTI")
 			return
 		}
-		memory.IsMulti[conn] = false
-		conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(memory.Queue[conn]))))
-		for _, cmd := range memory.Queue[conn] {
-			HandleCommand(conn, cmd, server)
+		memory.IsMulti[server.Conn] = false
+		server.Conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(memory.Queue[server.Conn]))))
+		for _, cmd := range memory.Queue[server.Conn] {
+			HandleCommand(server, cmd)
 		}
-		memory.Queue[conn] = nil
+		memory.Queue[server.Conn] = nil
 		return
 	}
 	if len(args) == 1 && strings.ToUpper(args[0]) == "DISCARD" {
-		if !memory.IsMulti[conn] {
-			utils.WriteError(conn, "DISCARD without MULTI")
+		if !memory.IsMulti[server.Conn] {
+			utils.WriteError(server.Conn, "DISCARD without MULTI")
 			return
 		}
-		memory.IsMulti[conn] = false
-		memory.Queue[conn] = nil
-		utils.WriteSimpleString(conn, "OK")
+		memory.IsMulti[server.Conn] = false
+		memory.Queue[server.Conn] = nil
+		utils.WriteSimpleString(server.Conn, "OK")
 		return
 	}
 
-	if memory.IsMulti[conn] {
-		memory.Queue[conn] = append(memory.Queue[conn], args)
-		utils.WriteSimpleString(conn, "QUEUED")
+	if memory.IsMulti[server.Conn] {
+		memory.Queue[server.Conn] = append(memory.Queue[server.Conn], args)
+		utils.WriteSimpleString(server.Conn, "QUEUED")
 		return
 	} else {
 		fmt.Println("Handling command:", args)
@@ -44,37 +43,39 @@ func HandleCommand(conn net.Conn, args []string, server server.Server) {
 
 		switch strings.ToUpper(args[0]) {
 		case "PING":
-			handlePing(conn)
+			handlePing(server)
 		case "ECHO":
-			handleEcho(conn, args)
+			handleEcho(server, args)
 		case "SET":
-			handleSet(conn, args)
+			handleSet(server, args)
 		case "GET":
-			handleGet(conn, args)
+			handleGet(server, args)
 		case "LPUSH":
-			handleLPush(conn, args)
+			handleLPush(server, args)
 		case "RPUSH":
-			handleRPush(conn, args)
+			handleRPush(server, args)
 		case "LRANGE":
-			handleLRange(conn, args)
+			handleLRange(server, args)
 		case "LLEN":
-			handleLLen(conn, args)
+			handleLLen(server, args)
 		case "LPOP":
-			handleLPop(conn, args)
+			handleLPop(server, args)
 		case "BLPOP":
-			handleBLPop(conn, args)
+			handleBLPop(server, args)
 		case "INCR":
-			handleINCR(conn, args)
+			handleINCR(server, args)
 		case "MULTI":
-			handleMULTI(conn, args)
+			handleMULTI(server, args)
 		case "INFO":
-			handleINFO(conn, args, server)
+			handleINFO(server.Conn, args, server)
 		case "REPLCONF":
-			handleREPLCONF(conn, args)
+			handleREPLCONF(server, args)
 		case "PSYNC":
-			handlePSYNC(conn, args)
+			handlePSYNC(server, args)
+		case "TYPE":
+			handleType(server, args)
 		default:
-			utils.WriteError(conn, fmt.Sprintf("unknown command '%s'", args[0]))
+			utils.WriteError(server.Conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
 	}
 }

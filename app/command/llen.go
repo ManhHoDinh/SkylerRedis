@@ -2,14 +2,14 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 )
 
-func handleLLen(conn net.Conn, args []string) {
+func handleLLen(server server.Server, args []string) {
 	if len(args) != 2 {
-		utils.WriteError(conn, "wrong number of arguments for 'LLEN'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'LLEN'")
 		return
 	}
-	utils.WriteInteger(conn, len(memory.RPush[args[1]]))
+	utils.WriteInteger(server.Conn, len(memory.RPush[args[1]]))
 }

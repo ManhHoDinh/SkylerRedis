@@ -2,16 +2,16 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func handleSet(conn net.Conn, args []string) {
+func handleSet(server server.Server, args []string) {
 	if len(args) < 3 {
-		utils.WriteError(conn, "wrong number of arguments for 'SET'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'SET'")
 		return
 	}
 	key := args[1]
@@ -21,12 +21,12 @@ func handleSet(conn net.Conn, args []string) {
 	if len(args) >= 5 && strings.ToUpper(args[3]) == "PX" {
 		ms, err := strconv.Atoi(args[4])
 		if err != nil {
-			utils.WriteError(conn, "PX value must be integer")
+			utils.WriteError(server.Conn, "PX value must be integer")
 			return
 		}
 		expiry = time.Now().Add(time.Duration(ms) * time.Millisecond)
 	}
 
 	memory.Store[key] = memory.Entry{Value: val, ExpiryTime: expiry}
-	utils.WriteSimpleString(conn, "OK")
+	utils.WriteSimpleString(server.Conn, "OK")
 }

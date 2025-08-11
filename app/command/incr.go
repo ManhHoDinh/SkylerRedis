@@ -2,15 +2,15 @@ package command
 
 import (
 	"SkylerRedis/app/memory"
+	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
-	"net"
 	"strconv"
 	"time"
 )
 
-func handleINCR(conn net.Conn, args []string) {
+func handleINCR(server server.Server, args []string) {
 	if len(args) != 2 {
-		utils.WriteError(conn, "wrong number of arguments for 'INCR'")
+		utils.WriteError(server.Conn, "wrong number of arguments for 'INCR'")
 		return
 	}
 	key := args[1]
@@ -22,10 +22,10 @@ func handleINCR(conn net.Conn, args []string) {
 
 	val, err := strconv.Atoi(entry.Value)
 	if err != nil {
-		utils.WriteError(conn, "value is not an integer or out of range")
+		utils.WriteError(server.Conn, "value is not an integer or out of range")
 		return
 	}
 	val++
 	memory.Store[key] = memory.Entry{Value: strconv.Itoa(val), ExpiryTime: entry.ExpiryTime}
-	utils.WriteInteger(conn, val)
+	utils.WriteInteger(server.Conn, val)
 }
