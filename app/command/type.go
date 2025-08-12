@@ -3,7 +3,7 @@ package command
 import (
 	"SkylerRedis/app/memory"
 	"SkylerRedis/app/server"
-	"SkylerRedis/app/utils"	
+	"SkylerRedis/app/utils"
 )
 
 func handleType(server server.Server, args []string) {
@@ -16,6 +16,8 @@ func handleType(server server.Server, args []string) {
 		utils.WriteSimpleString(server.Conn, "list")
 	} else if _, exists := memory.Store[key]; exists {
 		utils.WriteSimpleString(server.Conn, "string")
+	} else if _, exists := memory.Stream[key]; exists {
+		utils.WriteSimpleString(server.Conn, "stream")
 	} else {
 		utils.WriteSimpleString(server.Conn, "none")
 	}

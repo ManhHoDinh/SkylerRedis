@@ -74,6 +74,10 @@ func HandleCommand(server server.Server, args []string) {
 			handlePSYNC(server, args)
 		case "TYPE":
 			handleType(server, args)
+		case "XADD":
+			handleXAdd(server, args)
+		// case "XREAD":
+		// 	handleXRead(server, args)
 		default:
 			utils.WriteError(server.Conn, fmt.Sprintf("unknown command '%s'", args[0]))
 		}
