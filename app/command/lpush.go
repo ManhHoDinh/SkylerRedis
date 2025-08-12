@@ -23,14 +23,11 @@ func handleLPush(server server.Server, args []string) {
 	}
 
 	// Wake up blocked BLPOP clients if any
-	if wakeUpFirstBlocking(key) {
-		utils.WriteInteger(server.Conn, len(memory.RPush[key]) - 1)
-	} else {
-		utils.WriteInteger(server.Conn, len(memory.RPush[key]))
-	}
+	utils.WriteInteger(server.Conn, len(memory.RPush[key]))
+	wakeUpFirstBlocking(key)
 }
 
-func wakeUpFirstBlocking(key string) bool {
+func wakeUpFirstBlocking(key string)  {
 	if list, ok := memory.Blockings[key]; ok && len(list) > 0 {
 		req := list[0]
 		fmt.Println("Waking up blocking request for key:", key)
@@ -39,7 +36,5 @@ func wakeUpFirstBlocking(key string) bool {
 		case req.Ch <- key:
 		default:
 		}
-		return true
 	}
-	return false
 }
