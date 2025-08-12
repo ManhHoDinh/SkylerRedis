@@ -20,5 +20,5 @@ func handleXAdd(server server.Server, args []string) {
 		ID:    args[2],
 		Values: values,
 	})
-	utils.WriteSimpleString(server.Conn, "OK")
+	utils.WriteSimpleString(server.Conn, args[2])
 }
