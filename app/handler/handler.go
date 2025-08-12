@@ -10,7 +10,6 @@ import (
 	"net"
 	"strings"
 )
-// Chuyển args thành RESP bytes
 func argsToRESP(args []string) []byte {
     var b strings.Builder
     b.WriteString(fmt.Sprintf("*%d\r\n", len(args)))
@@ -46,8 +45,6 @@ func HandleConnection(requestServer server.Server) {
                     fmt.Println("Error connecting to slave:", err)
                     continue
                 }
-                defer conn.Close()
-
                 resp := argsToRESP(args)
                 conn.Write(resp)
             }
