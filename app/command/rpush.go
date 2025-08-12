@@ -21,7 +21,10 @@ func handleRPush(server server.Server, args []string) {
 		memory.RPush[key] = append(memory.RPush[key], args[i])
 	}
 
-	wakeUpFirstBlocking(key)
+	if wakeUpFirstBlocking(key) {
+		utils.WriteInteger(server.Conn, len(memory.RPush[key])-1)
+	} else {
+		utils.WriteInteger(server.Conn, len(memory.RPush[key]))
+	}
 
-	utils.WriteInteger(server.Conn, len(memory.RPush[key]))
 }

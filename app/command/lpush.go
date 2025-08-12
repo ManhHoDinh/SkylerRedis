@@ -4,6 +4,7 @@ import (
 	"SkylerRedis/app/memory"
 	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
+	"fmt"
 )
 
 func handleLPush(server server.Server, args []string) {
@@ -22,17 +23,23 @@ func handleLPush(server server.Server, args []string) {
 	}
 
 	// Wake up blocked BLPOP clients if any
-	wakeUpFirstBlocking(key)
-	utils.WriteInteger(server.Conn, len(memory.RPush[key]))
+	if wakeUpFirstBlocking(key) {
+		utils.WriteInteger(server.Conn, len(memory.RPush[key]) - 1)
+	} else {
+		utils.WriteInteger(server.Conn, len(memory.RPush[key]))
+	}
 }
 
-func wakeUpFirstBlocking(key string) {
+func wakeUpFirstBlocking(key string) bool {
 	if list, ok := memory.Blockings[key]; ok && len(list) > 0 {
 		req := list[0]
+		fmt.Println("Waking up blocking request for key:", key)
 		memory.Blockings[key] = list[1:]
 		select {
 		case req.Ch <- key:
 		default:
 		}
+		return true
 	}
+	return false
 }
