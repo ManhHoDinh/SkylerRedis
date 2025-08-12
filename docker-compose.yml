@@ -1,14 +1,37 @@
+version: "3.9"
+
 services:
   master:
     image: redis-clone
+    container_name: master
+    command: --port=6379
     ports:
       - "6379:6379"
+    networks:
+      - redisnet
 
-  slave:
+  slave1:
     image: redis-clone
+    container_name: slave1
+    command: --hostname=slave1 --port=6378 --replicaof="master 6379"
     ports:
       - "6378:6378"
-    command: --port=6378 --replicaof="master 6379"
     depends_on:
       - master
-    
+    networks:
+      - redisnet
+
+  slave2:
+    image: redis-clone
+    container_name: slave2
+    command: --hostname=slave2 --port=6377 --replicaof="master 6379"
+    ports:
+      - "6377:6377"
+    depends_on:
+      - master
+    networks:
+      - redisnet
+
+networks:
+  redisnet:
+    driver: bridge

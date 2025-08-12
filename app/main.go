@@ -14,10 +14,10 @@ import (
 
 var port = flag.String("port", "6379", "Port for redis server")
 var replicaof = flag.String("replicaof", "", "Address of the master server")
-
+var hostname = flag.String("hostname", "0.0.0.0", "Hostname for the server")
 func main() {
 	flag.Parse() // Parse command line arguments
-	l, err := net.Listen("tcp", "0.0.0.0:"+*port)
+	l, err := net.Listen("tcp", *hostname+":"+*port)
 	if err != nil {
 		fmt.Println("Failed to bind to port", *port)
 		os.Exit(1)
@@ -103,6 +103,12 @@ func sendToMaster() {
 		}
 		fmt.Println("Sent PSYNC to master")
 		time.Sleep(5 * time.Millisecond)
+		network := *hostname + ":" + *port
+		_, err = conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$17\r\nlistening-network\r\n$%d\r\n%s\r\n", len(network), network)))
+		if err != nil {
+			fmt.Println("Connection to master lost:", err)
+			conn.Close()
+		}
 		defer conn.Close()
 	}
 }
