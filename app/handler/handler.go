@@ -22,7 +22,6 @@ func argsToRESP(args []string) []byte {
 
 func HandleConnection(requestServer server.Server) {
 	reader := bufio.NewReader(requestServer.Conn)
-	defer requestServer.Conn.Close()
 	for {
 		args, err := utils.ParseArgs(requestServer.Conn, reader)
 		if err != nil {
@@ -33,9 +32,9 @@ func HandleConnection(requestServer server.Server) {
 			utils.WriteError(requestServer.Conn, "empty command")
 			return
 		}
-		command.HandleCommand(requestServer, args)
+		go command.HandleCommand(requestServer, args)
 
-		func() {
+		go func() {
 			if requestServer.IsMaster && isModifyCommand(args) {
 				// Forward command to all slaves
 				resp := argsToRESP(args)
