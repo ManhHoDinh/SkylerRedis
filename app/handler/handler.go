@@ -33,9 +33,9 @@ func HandleConnection(requestServer server.Server) {
 			utils.WriteError(requestServer.Conn, "empty command")
 			return
 		}
-		go command.HandleCommand(requestServer, args)
+		command.HandleCommand(requestServer, args)
 
-		go func() {
+		func() {
 			if requestServer.IsMaster && isModifyCommand(args) {
 				// Forward command to all slaves
 				resp := argsToRESP(args)

@@ -31,7 +31,7 @@ func main() {
 		fmt.Println("Running as master")
 		Server.IsMaster = true
 	}
-	go sendToMaster()
+	sendToMaster()
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -39,7 +39,7 @@ func main() {
 			continue
 		}
 		Server.Conn = conn
-		go handler.HandleConnection(Server)
+		handler.HandleConnection(Server)
 	}
 }
 func sendToMaster() {
