@@ -4,6 +4,7 @@ import (
 	"SkylerRedis/app/memory"
 	"SkylerRedis/app/server"
 	"SkylerRedis/app/utils"
+	"fmt"
 	"time"
 )
 
@@ -14,6 +15,8 @@ func handleGet(server server.Server, args []string) {
 	}
 	key := args[1]
 	entry, ok := memory.Store[key]
+	fmt.Println("GET", key)
+	fmt.Println("Entry:", entry)
 	if !ok || (entry.ExpiryTime != (time.Time{}) && time.Now().After(entry.ExpiryTime)) {
 		delete(memory.Store, key)
 		utils.WriteNull(server.Conn)
