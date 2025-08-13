@@ -33,7 +33,10 @@ func HandleConnection(requestServer server.Server) {
 			utils.WriteError(requestServer.Conn, "empty command")
 			return
 		}
-
+		if requestServer.IsMaster == false {
+			command.HandleCommand(requestServer, args)
+			continue
+		}
 		command.HandleCommand(requestServer, args)
 
 		if requestServer.IsMaster && isModifyCommand(args) {
@@ -60,7 +63,6 @@ func HandleConnection(requestServer server.Server) {
 					fmt.Println("Error forwarding to slave:", err)
 				}
 				fmt.Println("Command forwarded to slave:", ser.Addr)
-				defer conn.Close()
 			}
 		}
 	}

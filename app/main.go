@@ -2,7 +2,6 @@ package main
 
 import (
 	"SkylerRedis/app/handler"
-	"SkylerRedis/app/memory"
 	"SkylerRedis/app/server"
 	"flag"
 	"fmt"
@@ -41,7 +40,6 @@ func main() {
 				continue
 			}
 			Server.Conn = conn
-			fmt.Println("Master:", memory.Master)
 			go handler.HandleConnection(Server)
 		}
 	}()
