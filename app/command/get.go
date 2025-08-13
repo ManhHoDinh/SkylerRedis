@@ -15,6 +15,7 @@ func handleGet(server server.Server, args []string) {
 	}
 	key := args[1]
 	entry, ok := memory.Store[key]
+	time.Sleep(5 * time.Millisecond)
 	fmt.Println("GET", key)
 	fmt.Println("Entry:", entry)
 	if !ok || (entry.ExpiryTime != (time.Time{}) && time.Now().After(entry.ExpiryTime)) {

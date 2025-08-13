@@ -7,6 +7,7 @@ import (
 	"SkylerRedis/app/utils"
 	"bufio"
 	"fmt"
+	"net"
 	"strings"
 )
 
@@ -45,30 +46,29 @@ func HandleConnection(requestServer server.Server) {
 
 			resp := argsToRESP(args)
 			for _, ser := range memory.Master.Slaves {
-				// conn, err := net.Dial("tcp", ser.Addr)
-				// if err != nil {
-				// 	fmt.Println("Error connecting to slave:", err)
-				// 	fmt.Println("Retrying connect to slave:", ser.Conn.RemoteAddr())
-				// 	_, reTryErr := ser.Conn.Write(resp)
-				// 	if reTryErr != nil {
-				// 		fmt.Println("Error forwarding to slave:", reTryErr)
-				// 	}
-				// 	fmt.Println("Command forwarded to slave:", ser.Conn.RemoteAddr())
-				// 	continue
-				// }
-				// fmt.Println("Forwarding to slave:", ser.Addr)
-				// _, err = conn.Write(resp)
-				// if err != nil {
-				// 	fmt.Println("Error forwarding to slave:", err)
-				// }
-				// fmt.Println("Command forwarded to slave:", ser.Addr)
-
-				fmt.Println("Forwarding to slave:", ser.Conn.RemoteAddr())
-				_, err = ser.Conn.Write(resp)
+				conn, err := net.Dial("tcp", ser.Addr)
+				if err != nil {
+					fmt.Println("Error connecting to slave:", err)
+					fmt.Println("Retrying connect to slave:", ser.Conn.RemoteAddr())
+					_, reTryErr := ser.Conn.Write(resp)
+					if reTryErr != nil {
+						fmt.Println("Error forwarding to slave:", reTryErr)
+					}
+					fmt.Println("Command forwarded to slave:", ser.Conn.RemoteAddr())
+					continue
+				}
+				fmt.Println("Forwarding to slave:", ser.Addr)
+				_, err = conn.Write(resp)
 				if err != nil {
 					fmt.Println("Error forwarding to slave:", err)
 				}
-				fmt.Println("Command forwarded to slave:", ser.Conn.RemoteAddr())
+				fmt.Println("Command forwarded to slave:", ser.Addr)
+				// fmt.Printf("Forwarding to slave: %s\n", ser.Conn.RemoteAddr())
+				// _, err = ser.Conn.Write(resp)
+				// if err != nil {
+				// 	fmt.Println("Error forwarding to slave:", err)
+				// }
+				// fmt.Println("Command forwarded to slave:", ser.Conn.RemoteAddr())
 			}
 		}
 	}

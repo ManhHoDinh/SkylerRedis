@@ -2,3 +2,7 @@ docker build -t redis-clone .
 docker run -p 6379:6379 redis-clone
 docker run -p 6379:6379 --name master redis-clone
 docker run -p 6378:6378 --name slave --link master redis-clone --replicaof="master 6379"
+cat /etc/resolv.conf
+nameserver 172.24.176.1
+redis-cli -h 172.19.208.1 -p 6379
+
