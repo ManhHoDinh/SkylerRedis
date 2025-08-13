@@ -38,7 +38,6 @@ func HandleConnection(requestServer server.Server) {
 		go func() {
 			if requestServer.IsMaster && isModifyCommand(args) {
 				// Forward command to all slaves
-
 				resp := argsToRESP(args)
 				for _, ser := range memory.Master.Slaves {
 					conn, err := net.Dial("tcp", ser.Addr)

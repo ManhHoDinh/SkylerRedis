@@ -31,21 +31,16 @@ func main() {
 		fmt.Println("Running as master")
 		Server.IsMaster = true
 	}
-
-	go func() {
-		for {
-			conn, err := l.Accept()
-			if err != nil {
-				fmt.Println("Failed to accept connection:", err)
-				continue
-			}
-			Server.Conn = conn
-			go handler.HandleConnection(Server)
-		}
-	}()
 	go sendToMaster()
-
-	select {} // Keep the main goroutine running
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Failed to accept connection:", err)
+			continue
+		}
+		Server.Conn = conn
+		go handler.HandleConnection(Server)
+	}
 }
 func sendToMaster() {
 	if *replicaof != "" {
