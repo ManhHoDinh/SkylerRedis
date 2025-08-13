@@ -39,3 +39,9 @@ func parseLength(s string) int {
 	fmt.Sscanf(s, "*%d", &n)
 	return n
 }
+func FormatAddr(host, port string) string {
+	if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
+		return fmt.Sprintf("[%s]:%s", host, port) // IPv6
+	}
+	return fmt.Sprintf("%s:%s", host, port) // IPv4 / hostname
+}

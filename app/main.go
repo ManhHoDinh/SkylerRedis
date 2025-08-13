@@ -15,6 +15,7 @@ import (
 var port = flag.String("port", "6379", "Port for redis server")
 var replicaof = flag.String("replicaof", "", "Address of the master server")
 var hostname = flag.String("hostname", "0.0.0.0", "Hostname for the server")
+
 func main() {
 	flag.Parse() // Parse command line arguments
 	l, err := net.Listen("tcp", *hostname+":"+*port)
@@ -27,24 +28,9 @@ func main() {
 		fmt.Println("Server is running on port", *port)
 		fmt.Println("Replica of:", *replicaof)
 
-		Server.SeverId = len(memory.Master.Slaves) + 1
-		Server.Addr = "slave:" + *port
-		slave := server.Slave{
-			Master: memory.Master,
-			Server: &Server,
-		}
-		if len(memory.Master.Slaves) == 0 {
-			memory.Master.Slaves = make([]*server.Slave, 0)
-		}
-		memory.Master.Slaves = append(memory.Master.Slaves, &slave)
-		fmt.Println("Slave ID:", Server.SeverId)
-		fmt.Println("Slaves:", memory.Master.Slaves)
 	} else {
 		fmt.Println("Running as master")
-		Server.SeverId = 0
 		Server.IsMaster = true
-		Server.Addr = "master:" + *port
-		memory.Master.Server = &Server
 	}
 
 	go func() {
@@ -60,6 +46,7 @@ func main() {
 		}
 	}()
 	go sendToMaster()
+
 	select {} // Keep the main goroutine running
 }
 func sendToMaster() {
@@ -95,20 +82,12 @@ func sendToMaster() {
 		}
 		fmt.Println("Sent Second REPLCONF to master")
 
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		_, err = conn.Write([]byte("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"))
 		if err != nil {
 			fmt.Println("Connection to master lost:", err)
 			conn.Close()
 		}
 		fmt.Println("Sent PSYNC to master")
-		time.Sleep(5 * time.Millisecond)
-		network := *hostname + ":" + *port
-		_, err = conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$17\r\nlistening-network\r\n$%d\r\n%s\r\n", len(network), network)))
-		if err != nil {
-			fmt.Println("Connection to master lost:", err)
-			conn.Close()
-		}
-		defer conn.Close()
 	}
 }
