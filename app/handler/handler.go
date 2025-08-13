@@ -33,10 +33,6 @@ func HandleConnection(requestServer server.Server) {
 			utils.WriteError(requestServer.Conn, "empty command")
 			return
 		}
-		if requestServer.IsMaster == false {
-			command.HandleCommand(requestServer, args)
-			continue
-		}
 		go command.HandleCommand(requestServer, args)
 
 		go func() {
