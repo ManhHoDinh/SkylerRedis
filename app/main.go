@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 var port = flag.String("port", "6379", "Port for redis server")
@@ -31,16 +30,19 @@ func main() {
 		fmt.Println("Running as master")
 		Server.IsMaster = true
 	}
-	sendToMaster()
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Failed to accept connection:", err)
-			continue
+	go sendToMaster()
+	go func() {
+		for {
+			conn, err := l.Accept()
+			if err != nil {
+				fmt.Println("Failed to accept connection:", err)
+				continue
+			}
+			Server.Conn = conn
+			go handler.HandleConnection(Server)
 		}
-		Server.Conn = conn
-		handler.HandleConnection(Server)
-	}
+	}()
+	select {} // Keep the main goroutine running
 }
 func sendToMaster() {
 	if *replicaof != "" {
@@ -49,38 +51,84 @@ func sendToMaster() {
 		conn, err := net.Dial("tcp", masterAddr)
 		if err != nil {
 			fmt.Println("Failed to connect to master:", err)
-			time.Sleep(5 * time.Second)
+			return
 		}
 
 		fmt.Println("Connected to master:", masterAddr)
-		_, err = conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
-		if err != nil {
-			fmt.Println("Connection to master lost:", err)
-			conn.Close()
-		}
-		fmt.Println("Sent PING to master")
-		time.Sleep(5 * time.Millisecond)
-		_, err = conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%s\r\n", *port)))
 
-		if err != nil {
-			fmt.Println("Connection to master lost:", err)
-			conn.Close()
-		}
-		fmt.Println("Sent first REPLCONF to master")
-		time.Sleep(5 * time.Millisecond)
-		_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"))
-		if err != nil {
-			fmt.Println("Connection to master lost:", err)
-			conn.Close()
-		}
-		fmt.Println("Sent Second REPLCONF to master")
+		// Start goroutine to handle master communication and command propagation
+		go func() {
+			defer conn.Close()
 
-		time.Sleep(10 * time.Millisecond)
-		_, err = conn.Write([]byte("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"))
-		if err != nil {
-			fmt.Println("Connection to master lost:", err)
-			conn.Close()
-		}
-		fmt.Println("Sent PSYNC to master")
+			// Send PING
+			_, err = conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				return
+			}
+			fmt.Println("Sent PING to master")
+
+			// Read PONG response
+			buffer := make([]byte, 1024)
+			_, err = conn.Read(buffer)
+			if err != nil {
+				fmt.Println("Error reading PONG:", err)
+				return
+			}
+
+			// Send first REPLCONF
+			_, err = conn.Write([]byte(fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n%s\r\n", *port)))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				return
+			}
+			fmt.Println("Sent first REPLCONF to master")
+
+			// Read OK response
+			_, err = conn.Read(buffer)
+			if err != nil {
+				fmt.Println("Error reading first REPLCONF OK:", err)
+				return
+			}
+
+			// Send second REPLCONF
+			_, err = conn.Write([]byte("*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				return
+			}
+			fmt.Println("Sent Second REPLCONF to master")
+
+			// Read OK response
+			_, err = conn.Read(buffer)
+			if err != nil {
+				fmt.Println("Error reading second REPLCONF OK:", err)
+				return
+			}
+
+			// Send PSYNC
+			_, err = conn.Write([]byte("*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"))
+			if err != nil {
+				fmt.Println("Connection to master lost:", err)
+				return
+			}
+			fmt.Println("Sent PSYNC to master")
+
+			// Read FULLRESYNC response
+			_, err = conn.Read(buffer)
+			if err != nil {
+				fmt.Println("Error reading FULLRESYNC:", err)
+				return
+			}
+
+			// Read RDB file (skip the RDB data for now)
+			rdbBuffer := make([]byte, 4096)
+			_, err = conn.Read(rdbBuffer)
+			if err != nil {
+				fmt.Println("Error reading RDB:", err)
+				return
+			}
+
+		}()
 	}
 }
