@@ -58,8 +58,6 @@ func sendToMaster() {
 
 		// Start goroutine to handle master communication and command propagation
 		go func() {
-			defer conn.Close()
-
 			// Send PING
 			_, err = conn.Write([]byte("*1\r\n$4\r\nPING\r\n"))
 			if err != nil {
