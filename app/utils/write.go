@@ -20,7 +20,12 @@ func WriteBulkString(conn net.Conn, s string) {
 	}
 	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)))
 }
-
+func WriteArray(conn net.Conn, items []string) {
+	conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(items))))
+	for _, item := range items {
+		WriteBulkString(conn, item)
+	}
+}
 func WriteInteger(conn net.Conn, n int) {
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", n)))
 }

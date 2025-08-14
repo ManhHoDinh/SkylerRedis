@@ -6,11 +6,12 @@ import (
 	"SkylerRedis/app/utils"
 	"fmt"
 	"net"
+	"strings"
 )
 
 func handleREPLCONF(request server.Server, args []string) {
 	fmt.Println("Handling REPLCONF command with args:", args)
-	if args[1] == "listening-port" {
+	if strings.ToUpper(args[1]) == "LISTENING-PORT" {
 		remoteHost, _, _ := net.SplitHostPort(request.Conn.RemoteAddr().String())
 		fmt.Println("Remote host:", remoteHost)
 		slaveAddr := utils.FormatAddr(remoteHost, args[2])
@@ -26,5 +27,17 @@ func handleREPLCONF(request server.Server, args []string) {
 		memory.Master.Slaves = append(memory.Master.Slaves, &slave)
 		fmt.Println("slaves:", memory.Master.Slaves)
 	}
-	utils.WriteSimpleString(request.Conn, "OK")
+	if strings.ToUpper(args[1]) == "GETACK" {
+		fmt.Println("Handling REPLCONF GETACK command")
+		ackItems := []string{
+			"REPLCONF",
+			"ACK",
+			"0",
+		}
+		utils.WriteArray(request.Conn, ackItems)
+	} else {
+		utils.WriteSimpleString(request.Conn, "OK")
+	}
+
+	
 }
