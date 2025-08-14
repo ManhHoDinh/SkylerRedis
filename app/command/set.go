@@ -26,7 +26,6 @@ func handleSet(server server.Server, args []string) {
 		}
 		expiry = time.Now().Add(time.Duration(ms) * time.Millisecond)
 	}
-	memory.OffSet += 29
 	memory.Store[key] = memory.Entry{Value: val, ExpiryTime: expiry}
 	utils.WriteSimpleString(server.Conn, "OK")
 }

@@ -35,7 +35,6 @@ func handleREPLCONF(request server.Server, args []string) {
 			"ACK",
 			strconv.Itoa(memory.OffSet),
 		}
-		memory.OffSet += 37
 		utils.WriteArray(request.Conn, ackItems)
 		return
 	}

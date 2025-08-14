@@ -32,6 +32,8 @@ func HandleConnection(requestServer server.Server) {
 			utils.WriteError(requestServer.Conn, "empty command")
 			return
 		}
+		resp := argsToRESP(args)
+		memory.OffSet += len(resp)
 		go command.HandleCommand(requestServer, args)
 
 		go func() {
