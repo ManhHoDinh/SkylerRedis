@@ -29,13 +29,13 @@ func handleREPLCONF(request server.Server, args []string) {
 		fmt.Println("slaves:", memory.Master.Slaves)
 	}
 	if strings.ToUpper(args[1]) == "GETACK" {
-		memory.OffSet += 37
 		fmt.Println("Handling REPLCONF GETACK command")
 		ackItems := []string{
 			"REPLCONF",
 			"ACK",
 			strconv.Itoa(memory.OffSet),
 		}
+		memory.OffSet += 37
 		utils.WriteArray(request.Conn, ackItems)
 		return
 	}
