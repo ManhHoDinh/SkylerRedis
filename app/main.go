@@ -211,11 +211,3 @@ func (m *mockConn) RemoteAddr() net.Addr              { return nil }
 func (m *mockConn) SetDeadline(t time.Time) error     { return nil }
 func (m *mockConn) SetReadDeadline(t time.Time) error { return nil }
 func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}

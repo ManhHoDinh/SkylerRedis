@@ -6,6 +6,7 @@ import (
 	"SkylerRedis/app/utils"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -28,11 +29,12 @@ func handleREPLCONF(request server.Server, args []string) {
 		fmt.Println("slaves:", memory.Master.Slaves)
 	}
 	if strings.ToUpper(args[1]) == "GETACK" {
+		memory.OffSet += 37
 		fmt.Println("Handling REPLCONF GETACK command")
 		ackItems := []string{
 			"REPLCONF",
 			"ACK",
-			"0",
+			strconv.Itoa(memory.OffSet),
 		}
 		utils.WriteArray(request.Conn, ackItems)
 		return

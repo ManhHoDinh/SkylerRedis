@@ -16,3 +16,4 @@ var (
 	Mu        = sync.Mutex{}
 )
 var Master = &server.Master{Slaves: make([]*server.Slave, 0)}
+var OffSet int = 0 
