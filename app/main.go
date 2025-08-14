@@ -1,13 +1,17 @@
 package main
 
 import (
+	"SkylerRedis/app/command"
 	"SkylerRedis/app/handler"
 	"SkylerRedis/app/server"
+	"SkylerRedis/app/utils"
+	"bufio"
 	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 var port = flag.String("port", "6379", "Port for redis server")
@@ -127,6 +131,46 @@ func sendToMaster() {
 				return
 			}
 
+			fmt.Println("RDB file received, now listening for propagated commands...")
+
+			// Continue listening for propagated commands from master
+			readerFromMaster := bufio.NewReader(conn)
+			for {
+				args, err := utils.ParseArgs(conn, readerFromMaster)
+				if err != nil {
+					fmt.Println("Error parsing command from master:", err)
+					return
+				}
+				
+				if len(args) == 0 {
+					continue
+				}
+
+				fmt.Println("Received propagated command from master:", args)
+
+				// Create a mock server for processing the command without sending responses
+				mockServer := server.Server{
+					Conn:     &mockConn{}, // Use a mock connection that doesn't actually write
+					IsMaster: false,
+				}
+				
+				// Process the command (it will be applied to local state but no response sent)
+				command.HandleCommand(mockServer, args)
+			}
+
 		}()
 	}
 }
+
+// mockConn implements net.Conn interface but doesn't actually send data
+// This is used for processing propagated commands without sending responses back to master
+type mockConn struct{}
+
+func (m *mockConn) Read(b []byte) (n int, err error)   { return 0, nil }
+func (m *mockConn) Write(b []byte) (n int, err error) { return len(b), nil } // Pretend to write successfully
+func (m *mockConn) Close() error                      { return nil }
+func (m *mockConn) LocalAddr() net.Addr               { return nil }
+func (m *mockConn) RemoteAddr() net.Addr              { return nil }
+func (m *mockConn) SetDeadline(t time.Time) error     { return nil }
+func (m *mockConn) SetReadDeadline(t time.Time) error { return nil }
+func (m *mockConn) SetWriteDeadline(t time.Time) error { return nil }
