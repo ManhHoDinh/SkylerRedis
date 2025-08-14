@@ -152,7 +152,7 @@ func sendToMaster() {
 
 			// Continue listening for propagated commands from master using the same reader
 			for {
-				args, err := utils.ParseArgs(conn, readerFromMaster)
+				args, byteCount, err := utils.ParseArgsWithByteCount(conn, readerFromMaster)
 				if err != nil {
 					fmt.Println("Error parsing command from master:", err)
 					// Don't return immediately, the connection might recover
@@ -163,17 +163,25 @@ func sendToMaster() {
 					continue
 				}
 
-				fmt.Printf("Received propagated command from master: %v\n", args)
+				fmt.Printf("Received propagated command from master: %v (bytes: %d)\n", args, byteCount)
 
 				// Handle REPLCONF GETACK specially - it needs to respond to the master
 				if len(args) >= 2 && strings.ToUpper(args[0]) == "REPLCONF" && strings.ToUpper(args[1]) == "GETACK" {
+					// Don't update offset for REPLCONF GETACK - it should return the offset before this command
 					// Use the real master connection for REPLCONF GETACK
 					realServer := server.Server{
 						Conn:     conn,
 						IsMaster: false,
 					}
 					command.HandleCommand(realServer, args)
+					// Update offset AFTER handling REPLCONF GETACK
+					memory.OffSet += byteCount
+					fmt.Printf("Updated offset to %d after REPLCONF GETACK\n", memory.OffSet)
 				} else {
+					// Update offset BEFORE processing other commands
+					memory.OffSet += byteCount
+					fmt.Printf("Updated offset to %d after %s command\n", memory.OffSet, args[0])
+					
 					// Create a mock server for processing other commands without sending responses
 					mockServer := server.Server{
 						Conn:     &mockConn{}, // Use a mock connection that doesn't actually write
