@@ -165,14 +165,24 @@ func sendToMaster() {
 
 				fmt.Printf("Received propagated command from master: %v\n", args)
 
-				// Create a mock server for processing the command without sending responses
-				mockServer := server.Server{
-					Conn:     &mockConn{}, // Use a mock connection that doesn't actually write
-					IsMaster: false,
+				// Handle REPLCONF GETACK specially - it needs to respond to the master
+				if len(args) >= 2 && strings.ToUpper(args[0]) == "REPLCONF" && strings.ToUpper(args[1]) == "GETACK" {
+					// Use the real master connection for REPLCONF GETACK
+					realServer := server.Server{
+						Conn:     conn,
+						IsMaster: false,
+					}
+					command.HandleCommand(realServer, args)
+				} else {
+					// Create a mock server for processing other commands without sending responses
+					mockServer := server.Server{
+						Conn:     &mockConn{}, // Use a mock connection that doesn't actually write
+						IsMaster: false,
+					}
+					
+					// Process the command (it will be applied to local state but no response sent)
+					command.HandleCommand(mockServer, args)
 				}
-				
-				// Process the command (it will be applied to local state but no response sent)
-				command.HandleCommand(mockServer, args)
 				
 				// Debug: check if the value was stored
 				if len(args) >= 3 && strings.ToUpper(args[0]) == "SET" {
