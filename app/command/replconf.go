@@ -35,9 +35,8 @@ func handleREPLCONF(request server.Server, args []string) {
 			"0",
 		}
 		utils.WriteArray(request.Conn, ackItems)
-	} else {
-		utils.WriteSimpleString(request.Conn, "OK")
+		return
 	}
-
 	
+	utils.WriteSimpleString(request.Conn, "OK")
 }

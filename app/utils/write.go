@@ -25,6 +25,7 @@ func WriteArray(conn net.Conn, items []string) {
 	for _, item := range items {
 		WriteBulkString(conn, item)
 	}
+	fmt.Println("Wrote array to connection:", items)
 }
 func WriteInteger(conn net.Conn, n int) {
 	conn.Write([]byte(fmt.Sprintf(":%d\r\n", n)))
