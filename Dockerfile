@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go app from app/main.go
-RUN go build -o redis_clone ./cmd/SkylerRedis/main.go
+RUN go build -o redis_clone ./app/main.go
 
 # Expose Redis port
 EXPOSE 6379
