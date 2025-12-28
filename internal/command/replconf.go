@@ -12,7 +12,7 @@ import (
 
 type REPLCONF struct{}
 
-func (REPLCONF) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (REPLCONF) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	fmt.Println("Handling REPLCONF command with args:", args)
 	if strings.ToUpper(args[1]) == "LISTENING-PORT" {
 		remoteHost, _, _ := net.SplitHostPort(Conn.RemoteAddr().String())

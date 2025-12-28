@@ -8,7 +8,7 @@ import (
 
 type MULTI struct{}
 
-func (MULTI) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (MULTI) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	memory.IsMulti[Conn] = true
 	utils.WriteSimpleString(Conn, "OK")
 }

@@ -8,17 +8,21 @@ import (
 
 type Type struct{}
 
-func (Type) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (Type) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'TYPE'")
 		return
 	}
 	key := args[1]
-	if _, exists := memory.RPush[key]; exists {
+
+	shard.Mu.Lock()
+	defer shard.Mu.Unlock()
+
+	if _, exists := shard.RPush[key]; exists {
 		utils.WriteSimpleString(Conn, "list")
-	} else if _, exists := memory.Store[key]; exists {
+	} else if _, exists := shard.Store[key]; exists {
 		utils.WriteSimpleString(Conn, "string")
-	} else if _, exists := memory.Stream[key]; exists {
+	} else if _, exists := shard.Stream[key]; exists {
 		utils.WriteSimpleString(Conn, "stream")
 	} else {
 		utils.WriteSimpleString(Conn, "none")

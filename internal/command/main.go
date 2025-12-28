@@ -9,10 +9,10 @@ import (
 )
 
 type ICommand interface {
-	Handle(Conn net.Conn, args []string, isMaster bool)
+	Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard)
 }
 
-func HandleCommand(Conn net.Conn, args []string, isMaster bool) {
+func HandleCommand(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) { // Added shard parameter
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
 		if !memory.IsMulti[Conn] {
 			utils.WriteError(Conn, "EXEC without MULTI")
@@ -21,7 +21,7 @@ func HandleCommand(Conn net.Conn, args []string, isMaster bool) {
 		memory.IsMulti[Conn] = false
 		Conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(memory.Queue[Conn]))))
 		for _, cmd := range memory.Queue[Conn] {
-			HandleCommand(Conn, cmd, isMaster)
+			HandleCommand(Conn, cmd, isMaster, shard) // Pass shard here
 		}
 		memory.Queue[Conn] = nil
 		return
@@ -80,11 +80,30 @@ func HandleCommand(Conn net.Conn, args []string, isMaster bool) {
 			cmd = Type{}
 		case "XADD":
 			cmd = XAdd{}
+		case "SADD":
+			cmd = Sadd{}
+		case "SCARD":
+			cmd = Scard{}
+		case "SISMEMBER":
+			cmd = Sismember{}
+		case "SMEMBERS":
+			cmd = Smembers{}
+		case "SREM":
+			cmd = Srem{}
+		case "BFADD":
+			cmd = Bfadd{}
+		case "BFEXISTS":
+			cmd = Bfexists{}
+		case "CMSINCRBY":
+			cmd = Cmsincrby{}
+		case "CMSQUERY":
+			cmd = Cmsquery{}
 		// case "XREAD":
 		// 	handleXRead(server, args)
 		default:
 			utils.WriteError(Conn, fmt.Sprintf("unknown command '%s'", args[0]))
+			return // Added return here
 		}
-		cmd.Handle(Conn, args, isMaster)
+		cmd.Handle(Conn, args, isMaster, shard) // Pass shard here
 	}
 }

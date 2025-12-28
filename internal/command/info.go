@@ -1,6 +1,7 @@
 package command
 
 import (
+	"SkylerRedis/internal/memory"
 	"SkylerRedis/internal/utils"
 	"fmt"
 	"net"
@@ -15,7 +16,7 @@ func (i INFO) HandleHandle(Conn net.Conn, args []string, isMaster bool) {
 }
 
 // HandleHandle implements ICommand.
-func (INFO) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (INFO) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'INFO'")
 		return

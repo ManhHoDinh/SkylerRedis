@@ -11,7 +11,7 @@ import (
 
 type Set struct{}
 
-func (Set) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (Set) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) < 3 {
 		utils.WriteError(Conn, "wrong number of arguments for 'SET'")
 		return
@@ -28,6 +28,13 @@ func (Set) Handle(Conn net.Conn, args []string, isMaster bool) {
 		}
 		expiry = time.Now().Add(time.Duration(ms) * time.Millisecond)
 	}
-	memory.Store[key] = memory.Entry{Value: val, ExpiryTime: expiry}
+	shard.Mu.Lock()
+	defer shard.Mu.Unlock() // Ensure mutex is unlocked
+
+	// Initialize LRU and increment global LRU clock
+	newEntry := memory.Entry{Value: val, ExpiryTime: expiry, LRU: shard.LruClock}
+	shard.LruClock++
+	shard.Store[key] = newEntry
+	
 	utils.WriteSimpleString(Conn, "OK")
 }

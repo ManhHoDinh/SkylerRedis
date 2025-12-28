@@ -10,7 +10,7 @@ import (
 
 type LRange struct{}
 
-func (LRange) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (LRange) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) != 4 {
 		utils.WriteError(Conn, "wrong number of arguments for 'LRANGE'")
 		return
@@ -22,7 +22,11 @@ func (LRange) Handle(Conn net.Conn, args []string, isMaster bool) {
 		utils.WriteError(Conn, "invalid start or end index")
 		return
 	}
-	list := memory.RPush[key]
+
+	shard.Mu.Lock()
+	defer shard.Mu.Unlock()
+
+	list := shard.RPush[key]
 
 	if start < 0 {
 		start = len(list) + start

@@ -10,17 +10,17 @@ import (
 
 type BLPop struct{}
 
-func (BLPop) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (BLPop) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) != 3 {
 		utils.WriteError(Conn, "wrong number of arguments for 'BLPOP'")
 		return
 	}
 
-	memory.Mu.Lock()
+	memory.Mu.Lock() // Global lock for memory.Blockings, not for shard data
 	key := args[1]
-	if list, ok := memory.RPush[key]; ok && len(list) > 0 {
+	if list, ok := shard.RPush[key]; ok && len(list) > 0 {
 		value := list[0]
-		memory.RPush[key] = list[1:]
+		shard.RPush[key] = list[1:]
 		memory.Mu.Unlock()
 		utils.WriteArray(Conn, []string{key, value})
 		return
@@ -48,10 +48,10 @@ func (BLPop) Handle(Conn net.Conn, args []string, isMaster bool) {
 			utils.WriteBulkString(Conn, "")
 			return
 		}
-		list := memory.RPush[key]
+		list := shard.RPush[key]
 		if len(list) > 0 {
 			value := list[0]
-			memory.RPush[key] = list[1:]
+			shard.RPush[key] = list[1:]
 			Conn.Write([]byte("*2\r\n"))
 			utils.WriteBulkString(Conn, key)
 			utils.WriteBulkString(Conn, value)
@@ -72,11 +72,11 @@ func (BLPop) Handle(Conn net.Conn, args []string, isMaster bool) {
 			memory.Mu.Unlock()
 			utils.WriteNull(Conn)
 			return
-		case key := <-ch:
-			list := memory.RPush[key]
+		case key := <-ch: // The key here is the name of the list, not the actual value
+			list := shard.RPush[key]
 			if len(list) > 0 {
 				value := list[0]
-				memory.RPush[key] = list[1:]
+				shard.RPush[key] = list[1:]
 				Conn.Write([]byte("*2\r\n"))
 				utils.WriteBulkString(Conn, key)
 				utils.WriteBulkString(Conn, value)

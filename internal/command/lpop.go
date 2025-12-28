@@ -10,13 +10,17 @@ import (
 
 type LPop struct{}
 
-func (LPop) Handle(Conn net.Conn, args []string, isMaster bool) {
+func (LPop) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
 	if len(args) < 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'LPOP'")
 		return
 	}
 	key := args[1]
-	list := memory.RPush[key]
+
+	shard.Mu.Lock()
+	defer shard.Mu.Unlock()
+
+	list := shard.RPush[key]
 	if len(list) == 0 {
 		utils.WriteNull(Conn)
 		return
@@ -29,13 +33,13 @@ func (LPop) Handle(Conn net.Conn, args []string, isMaster bool) {
 		if count > len(list) {
 			count = len(list)
 		}
-		memory.RPush[key] = list[count:]
+		shard.RPush[key] = list[count:]
 		Conn.Write([]byte(fmt.Sprintf("*%d\r\n", count)))
 		for i := 0; i < count; i++ {
 			utils.WriteBulkString(Conn, list[i])
 		}
 	} else {
-		memory.RPush[key] = list[1:]
+		shard.RPush[key] = list[1:]
 		utils.WriteBulkString(Conn, list[0])
 	}
 }
