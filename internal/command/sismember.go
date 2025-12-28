@@ -8,7 +8,7 @@ import (
 
 type Sismember struct{}
 
-func (s Sismember) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (s Sismember) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 3 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'sismember' command")
 		return

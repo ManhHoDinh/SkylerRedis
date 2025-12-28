@@ -8,7 +8,7 @@ import (
 
 type Scard struct{}
 
-func (s Scard) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (s Scard) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'scard' command")
 		return

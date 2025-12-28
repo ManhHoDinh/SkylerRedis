@@ -8,7 +8,7 @@ import (
 
 type Type struct{}
 
-func (Type) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (Type) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'TYPE'")
 		return

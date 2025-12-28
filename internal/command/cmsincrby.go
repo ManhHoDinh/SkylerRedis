@@ -10,7 +10,7 @@ import (
 // Cmsincrby implements the CMS.INCRBY command.
 type Cmsincrby struct{}
 
-func (cmd Cmsincrby) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (cmd Cmsincrby) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 4 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'cms.incrby' command")
 		return

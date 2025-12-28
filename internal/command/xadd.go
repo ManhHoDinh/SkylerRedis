@@ -8,7 +8,7 @@ import (
 
 type XAdd struct{}
 
-func (XAdd) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (XAdd) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) < 4 {
 		utils.WriteError(Conn, "ERR wrong number of arguments for 'XADD' command")
 		return

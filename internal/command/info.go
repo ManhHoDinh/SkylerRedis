@@ -16,7 +16,7 @@ func (i INFO) HandleHandle(Conn net.Conn, args []string, isMaster bool) {
 }
 
 // HandleHandle implements ICommand.
-func (INFO) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (INFO) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'INFO'")
 		return
@@ -25,7 +25,8 @@ func (INFO) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Sh
 	case "REPLICATION":
 		if isMaster {
 			utils.WriteBulkString(Conn,
-				fmt.Sprintf("role:master\nmaster_replid:%s\nmaster_repl_offset:0", "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"))
+				fmt.Sprintf("role:master\nmaster_replid:%s\nmaster_repl_offset:%d\nconnected_slaves:%d",
+					masterReplID, masterReplOffset, connectedSlaves))
 		} else {
 			utils.WriteBulkString(Conn, "role:slave")
 		}

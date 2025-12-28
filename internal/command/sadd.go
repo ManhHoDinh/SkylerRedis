@@ -8,7 +8,7 @@ import (
 
 type Sadd struct{}
 
-func (s Sadd) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (s Sadd) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) < 3 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'sadd' command")
 		return

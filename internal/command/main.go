@@ -9,10 +9,10 @@ import (
 )
 
 type ICommand interface {
-	Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard)
+	Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard)
 }
 
-func HandleCommand(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) { // Added shard parameter
+func HandleCommand(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) == 1 && strings.ToUpper(args[0]) == "EXEC" {
 		if !memory.IsMulti[Conn] {
 			utils.WriteError(Conn, "EXEC without MULTI")
@@ -21,7 +21,7 @@ func HandleCommand(Conn net.Conn, args []string, isMaster bool, shard *memory.Sh
 		memory.IsMulti[Conn] = false
 		Conn.Write([]byte(fmt.Sprintf("*%d\r\n", len(memory.Queue[Conn]))))
 		for _, cmd := range memory.Queue[Conn] {
-			HandleCommand(Conn, cmd, isMaster, shard) // Pass shard here
+			HandleCommand(Conn, cmd, isMaster, masterReplID, masterReplOffset, connectedSlaves, shard)
 		}
 		memory.Queue[Conn] = nil
 		return
@@ -104,6 +104,6 @@ func HandleCommand(Conn net.Conn, args []string, isMaster bool, shard *memory.Sh
 			utils.WriteError(Conn, fmt.Sprintf("unknown command '%s'", args[0]))
 			return // Added return here
 		}
-		cmd.Handle(Conn, args, isMaster, shard) // Pass shard here
+		cmd.Handle(Conn, args, isMaster, masterReplID, masterReplOffset, connectedSlaves, shard) // Pass new params here
 	}
 }

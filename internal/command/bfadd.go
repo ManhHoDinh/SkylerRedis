@@ -18,7 +18,7 @@ const (
 	defaultBloomFp = 0.01
 )
 
-func (cmd Bfadd) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (cmd Bfadd) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 3 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'bf.add' command")
 		return

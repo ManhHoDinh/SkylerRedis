@@ -3,7 +3,7 @@ package server
 import (
 	"SkylerRedis/internal/command"
 	"SkylerRedis/internal/entity"
-	"SkylerRedis/internal/memory"
+	"SkylerRedis/internal/memory" // Added for memory.Shards and memory.GetShardForKey
 	"SkylerRedis/internal/utils"
 	"bufio"
 	"fmt"
@@ -16,6 +16,7 @@ type Slave struct {
 	*entity.BaseServer
 	ReplicaOf *string
 	Port      *string
+	Offset    int // Replication offset for this slave
 }
 
 // IsMaster returns false for the Slave server type.
@@ -71,7 +72,7 @@ func (s *Slave) HandShake() {
 		if err != nil {
 			return
 		}
-		readRDBfromMaster(conn, readerFromMaster)
+		s.readRDBfromMaster(conn, readerFromMaster) // Pass slave instance
 	}()
 }
 
@@ -88,7 +89,7 @@ func handCommand(conn net.Conn, args []string, readerFromMaster *bufio.Reader, r
 	return nil
 }
 
-func readRDBfromMaster(conn net.Conn, readerFromMaster *bufio.Reader) {
+func (s *Slave) readRDBfromMaster(conn net.Conn, readerFromMaster *bufio.Reader) { // Added slave receiver
 	// Read RDB file - we need to parse the length and then read that many bytes
 	line, err := readerFromMaster.ReadString('\n')
 	if err != nil {
@@ -141,7 +142,7 @@ func readRDBfromMaster(conn net.Conn, readerFromMaster *bufio.Reader) {
 			// Respond to master with current offset
 			// For REPLCONF GETACK, there's no specific key for sharding data.
 			// It's a control command, so we can route it to shard 0.
-			command.HandleCommand(conn, args, false, memory.Shards[0]) 
+			command.HandleCommand(conn, args, false, "", 0, 0, memory.Shards[0]) 
 		} else {
 			// Apply propagated command to local state
 			// Get shard based on the command's key
@@ -150,10 +151,15 @@ func readRDBfromMaster(conn net.Conn, readerFromMaster *bufio.Reader) {
 				key = args[1]
 			}
 			shard := memory.GetShardForKey(key)
-			command.HandleCommand(&entity.MockConn{}, args, false, shard) 
+			command.HandleCommand(&entity.MockConn{}, args, false, "", 0, 0, shard) 
 		}
 		
 		// Always update the offset
-		memory.OffSet += byteCount
+		s.Offset += byteCount
 	}
+}
+
+// RegisterSlave returns an error as a slave cannot register other slaves.
+func (s *Slave) RegisterSlave(conn net.Conn, port string) error {
+	return fmt.Errorf("slave cannot register other slaves")
 }

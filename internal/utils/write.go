@@ -14,10 +14,6 @@ func WriteSimpleString(conn net.Conn, msg string) {
 }
 
 func WriteBulkString(conn net.Conn, s string) {
-	if s == "" {
-		conn.Write([]byte("$-1\r\n"))
-		return
-	}
 	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(s), s)))
 }
 func WriteArray(conn net.Conn, items []string) {

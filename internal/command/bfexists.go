@@ -9,7 +9,7 @@ import (
 // Bfexists implements the BF.EXISTS command.
 type Bfexists struct{}
 
-func (cmd Bfexists) Handle(conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (cmd Bfexists) Handle(conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 3 {
 		utils.WriteError(conn, "ERR wrong number of arguments for 'bf.exists' command")
 		return

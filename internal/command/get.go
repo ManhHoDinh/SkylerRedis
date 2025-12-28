@@ -10,7 +10,7 @@ import (
 
 type Get struct{}
 
-func (Get) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (Get) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'GET'")
 		return

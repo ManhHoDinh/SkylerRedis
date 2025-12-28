@@ -8,10 +8,10 @@ import (
 
 type Echo struct{}
 
-func (Echo) Handle(Conn net.Conn, args []string, isMaster bool, shard *memory.Shard) {
+func (Echo) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID string, masterReplOffset int, connectedSlaves int, shard *memory.Shard) {
 	if len(args) != 2 {
 		utils.WriteError(Conn, "wrong number of arguments for 'ECHO'")
 		return
 	}
-	utils.WriteSimpleString(Conn, args[1])
+	utils.WriteBulkString(Conn, args[1])
 }

@@ -14,21 +14,21 @@ var (
 	IsMulti   = make(map[net.Conn]bool)
 	Stream    = map[string]StreamEntry{}
 	Slaves    = make([]entity.BaseServer, 0)
-	OffSet    = 0
+	// OffSet    = 0 // Removed as offset is now part of Master/Slave struct
 	StreamIDs = make([]string, 0)
 	Mu        = sync.Mutex{} // Global mutex for global state (Blockings, Queue, etc.)
 
 	// Shard-specific data will now be managed via Shards map.
 	Shards map[int]*Shard // Map to hold multiple Shard instances.
-	shardsMu sync.RWMutex // Mutex to protect access to the Shards map itself.
+	ShardsMu sync.RWMutex // Mutex to protect access to the Shards map itself.
 
 	numShards int // Store the number of shards for GetShardForKey
 )
 
 // Global helper for initializing all shards.
 func InitShards(n int, maxMemory int) {
-	shardsMu.Lock()
-	defer shardsMu.Unlock()
+	ShardsMu.Lock()
+	defer ShardsMu.Unlock()
 
 	numShards = n // Store the number of shards
 	Shards = make(map[int]*Shard, numShards) // Initialize the map with capacity
@@ -40,8 +40,8 @@ func InitShards(n int, maxMemory int) {
 // GetShardForKey returns the appropriate Shard instance for a given key.
 // It uses FNV-1a hash to determine the shard ID.
 func GetShardForKey(key string) *Shard {
-	shardsMu.RLock()
-	defer shardsMu.RUnlock()
+	ShardsMu.RLock()
+	defer ShardsMu.RUnlock()
 
 	if numShards == 0 { // Should not happen if InitShards is called
 		return nil 

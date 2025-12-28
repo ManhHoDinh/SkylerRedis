@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings" // Added for strings.ToUpper
 	"time"
 )
 
@@ -23,12 +24,24 @@ var numShards = flag.Int("numshards", 1, "Number of data shards") // New flag fo
 
 func main() {
 	flag.Parse() // Parse command line arguments
+
+	var replicaOfStr string
+	if *replicaof != "" {
+		// CodeCrafters runner passes --replicaof host port as separate arguments.
+		// The flag package will assign 'host' to *replicaof, and 'port' will be a positional arg.
+		if len(flag.Args()) > 0 {
+			replicaOfStr = *replicaof + " " + flag.Args()[0]
+		} else {
+			// Handle cases where only --replicaof host is provided, though this is unlikely for CodeCrafters
+			log.Println("Warning: --replicaof flag used without a port argument.")
+			replicaOfStr = *replicaof
+		}
+	}
 	
 	// Initialize shards before anything else.
-	// For now, all data will go to shard 0 if numShards is 1.
 	memory.InitShards(*numShards, *maxmemory)
 
-	serverInstance := intServer(replicaof, port)
+	serverInstance := intServer(&replicaOfStr, port)
 
 	// The ReadCallback is the heart of handling client data.
 	// It's called by the event loop when a connection has data to be read.
@@ -44,6 +57,21 @@ func main() {
 			return err
 		}
 
+		// Handle REPLCONF LISTENING-PORT directly to break import cycle
+		if len(args) >= 3 && strings.ToUpper(args[0]) == "REPLCONF" && strings.ToUpper(args[1]) == "LISTENING-PORT" {
+			if serverInstance.IsMaster() {
+				err := serverInstance.RegisterSlave(conn, args[2])
+				if err != nil {
+					utils.WriteError(conn, fmt.Sprintf("ERR failed to register slave: %v", err))
+				} else {
+					utils.WriteSimpleString(conn, "OK")
+				}
+			} else {
+				utils.WriteError(conn, "ERR REPLCONF command only accepted by master server")
+			}
+			return nil
+		}
+
 		// Determine the shard based on the key (first argument after command for most cases)
 		// For now, it always returns shard 0.
 		var key string
@@ -52,14 +80,26 @@ func main() {
 		}
 		shard := memory.GetShardForKey(key) // Get the appropriate shard for this command
 
-		// Execute the command synchronously within the callback on the determined shard.
-		command.HandleCommand(conn, args, serverInstance.IsMaster(), shard)
+		isMaster := serverInstance.IsMaster()
+		var masterReplID string
+		var masterReplOffset int
+		var connectedSlaves int
+		if isMaster {
+			master, ok := serverInstance.(*server.Master)
+			if ok { // Should always be true if serverInstance.IsMaster() is true
+				masterReplID = master.MasterReplID
+				masterReplOffset = master.MasterReplOffset
+				connectedSlaves = len(master.Slaves)
+			}
+		}
+		
+		command.HandleCommand(conn, args, isMaster, masterReplID, masterReplOffset, connectedSlaves, shard)
 
 		if serverInstance.IsMaster() && utils.IsModifyCommand(args) {
-			// Forwarding is still TBD in an event-loop architecture.
-			// The old 'forwardCommand' creates new connections, which is slow.
-			// This will be redesigned later.
-			// go forwardCommand(args)
+			master, ok := serverInstance.(*server.Master)
+			if ok { // Should always be true if serverInstance.IsMaster() is true
+				go master.PropagateCommand(args) // Propagate in a goroutine to avoid blocking the event loop
+			}
 		}
 
 		// After handling a command that might add data, check for LRU eviction on the specific shard
@@ -79,7 +119,7 @@ func main() {
 
 	// Start the background task for expiring keys and LRU eviction for each shard.
 	// Each shard now manages its own eviction.
-	memory.shardsMu.RLock() // Protect reading from memory.Shards
+	memory.ShardsMu.RLock() // Protect reading from memory.Shards
 	for i := 0; i < *numShards; i++ {
 		shard := memory.Shards[i]
 		go func(s *memory.Shard) {
@@ -90,7 +130,7 @@ func main() {
 			}
 		}(shard)
 	}
-	memory.shardsMu.RUnlock() // Release read lock
+	memory.ShardsMu.RUnlock() // Release read lock
 
 	// Create the TCP listener.
 	l, err := net.Listen("tcp", *hostname+":"+*port)

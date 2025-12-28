@@ -2,6 +2,7 @@ version: "3.9"
 
 services:
   master:
+    build: .
     image: redis-clone
     container_name: master
     command: --port=6379
