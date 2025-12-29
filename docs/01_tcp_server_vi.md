@@ -14,12 +14,12 @@ Chúng ta sẽ sử dụng cấu trúc thư mục sau:
 
 ```
 skyler-redis/
-├── cmd/
-│   └── skyler-redis/
-│       └── main.go   # Điểm khởi đầu của ứng dụng chính
-├── server/
-│   └── server.go     # Logic của server
-└── go.mod            # Định nghĩa Go module
+├── internal/
+│    │── command/
+│    │    └── main.go   # Main application entry point
+│    ├── server/
+│       └── server.go   # Server logic
+└── go.mod            # Go module definition
 ```
 
 ### 2.2. Khởi tạo Go Module
