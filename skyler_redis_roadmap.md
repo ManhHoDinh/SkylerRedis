@@ -177,5 +177,5 @@ Go KV Engine (map + custom DS)
 
 ---
 
-> *SkylerRedis không chỉ là database — nó là hành trình học cách xây dựng hệ thống phân tán hiệu năng cao.*
+> *SkylerRedis không chỉ là database — nó là hành trình học cách xây dựng hệ thống phân tán hiệu nâng cao.*
 
