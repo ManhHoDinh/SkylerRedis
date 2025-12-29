@@ -14,11 +14,11 @@ We will use the following directory structure:
 
 ```
 skyler-redis/
-├── cmd/
-│   └── skyler-redis/
-│       └── main.go   # Main application entry point
-├── server/
-│   └── server.go     # Server logic
+├── internal/
+│    │── command/
+│    │    └── main.go   # Main application entry point
+│    ├── server/
+│       └── server.go   # Server logic
 └── go.mod            # Go module definition
 ```
 
