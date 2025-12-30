@@ -3,7 +3,6 @@ package command
 import (
 	"SkylerRedis/internal/memory"
 	"SkylerRedis/internal/utils"
-	"fmt"
 	"net"
 	"time"
 )
@@ -20,19 +19,21 @@ func (Get) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID stri
 	shard.Mu.Lock()
 	defer shard.Mu.Unlock()
 
-	entry, ok := shard.Store[key]
-	fmt.Println("GET", key)
-	fmt.Println("Entry:", entry)
-	if !ok || (entry.ExpiryTime != (time.Time{}) && time.Now().After(entry.ExpiryTime)) {
+	entryPtr, ok := shard.Store[key]
+	// fmt.Println("GET", key) // Removed debug print
+	// fmt.Println("Entry:", entryPtr) // Removed debug print
+	if !ok || (entryPtr.ExpiryTime != (time.Time{}) && time.Now().After(entryPtr.ExpiryTime)) {
 		delete(shard.Store, key)
 		utils.WriteNull(Conn)
 		return
 	}
 
 	// Update LRU and increment global LRU clock
-	entry.LRU = shard.LruClock
+	entryPtr.LRU = shard.LruClock
 	shard.LruClock++
-	shard.Store[key] = entry // Write back the updated entry
+	// Since entryPtr is a pointer, modifying its fields directly changes the stored Entry.
+	// Reassigning to map ensures any potential map internals are updated if Go ever requires it.
+	shard.Store[key] = entryPtr 
 	
-	utils.WriteBulkString(Conn, entry.Value)
+	utils.WriteBulkString(Conn, entryPtr.Value)
 }

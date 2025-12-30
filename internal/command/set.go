@@ -34,11 +34,9 @@ func (Set) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID stri
 	defer shard.Mu.Unlock() // Ensure mutex is unlocked
 
 	// Initialize LRU and increment global LRU clock
-	newEntry := memory.Entry{Value: val, ExpiryTime: expiry, LRU: shard.LruClock}
-	fmt.Println("New entry ExpiryTime before store:", newEntry.ExpiryTime) // Debug print
+	newEntry := &memory.Entry{Value: val, ExpiryTime: expiry, LRU: shard.LruClock}
 	shard.LruClock++
 	shard.Store[key] = newEntry
-	fmt.Println("Stored entry ExpiryTime:", shard.Store[key].ExpiryTime) // New debug print
 	
 	utils.WriteSimpleString(Conn, "OK")
 }

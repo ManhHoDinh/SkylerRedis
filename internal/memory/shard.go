@@ -9,7 +9,7 @@ import (
 // Shard holds all the data and state for a single shard, making it self-contained.
 // This is crucial for implementing a thread-per-shard architecture.
 type Shard struct {
-	Store            map[string]Entry
+	Store            map[string]*Entry
 	Sets             map[string]map[string]struct{}
 	BloomFilters     map[string]*bloom.BloomFilter
 	CountMinSketches map[string]*Sketch
@@ -24,7 +24,7 @@ type Shard struct {
 // NewShard creates and initializes a new Shard instance.
 func NewShard(maxMemory int) *Shard {
 	return &Shard{
-		Store:            make(map[string]Entry),
+		Store:            make(map[string]*Entry),
 		Sets:             make(map[string]map[string]struct{}),
 		BloomFilters:     make(map[string]*bloom.BloomFilter),
 		CountMinSketches: make(map[string]*Sketch),

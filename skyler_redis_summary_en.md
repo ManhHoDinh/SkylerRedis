@@ -18,12 +18,14 @@ This crucial phase involved replacing the initial, basic "goroutine-per-connecti
 This phase focused on building the core data handling capabilities:
 -   **Core KV & TTL**: Implemented `GET`/`SET` commands with support for time-to-live (TTL) expirations.
 -   **Concurrency Safety**: A critical bug fix was introduced by adding mutex locks around all accesses to the central data store, preventing race conditions.
--   **Expiration Mechanisms**: A dual expiration strategy was implemented:
+-   **Expiration Mechanisms**: A dual expiration strategy was implemented. See [[Design]](./15_expiry_design_en.md) for architectural trade-offs.
     1.  **Lazy Expiration**: Expired keys are deleted upon access (e.g., `GET`).
     2.  **Active Expiration**: A background task periodically samples and removes expired keys.
 -   **Data Structures**: The server's capabilities were extended by implementing:
     1.  The `Set` data structure (`SADD`, `SREM`, `SCARD`, etc.).
     2.  Probabilistic Data Structures: **Bloom Filter** (`BFADD`, `BFEXISTS`) and a from-scratch implementation of a **Count-Min Sketch** (`CMSINCRBY`, `CMSQUERY`).
+    3.  **Transactions** (`MULTI`/`EXEC`). See [[Design]](./11_transactions_en.md).
+    4.  **Redis Streams** (`XADD`, `XREAD`). See [[Design]](./12_streams_en.md).
 -   **Cache Eviction**: An approximate LRU (Least Recently Used) cache eviction policy was implemented, triggered when the number of keys exceeds a limit set by the `--maxmemory` flag.
 
 #### Phase 4: Optimization & Concurrency (Sharding)
@@ -35,7 +37,7 @@ To prepare for multi-core scalability, the architecture was refactored from a si
 
 #### Phase 5: Finalization & Evaluation
 The final phase focused on documentation and performance analysis:
--   **Documentation**: All architectural documents were updated to reflect the new event loop, concurrency model, data structures, and eviction policies.
+-   **Documentation**: All architectural documents were updated to reflect the new event loop, concurrency model, data structures, and eviction policies. A design document for the **RDB Persistence** model was also created. See [[Design]](./13_persistence_rdb_en.md).
 -   **Benchmarking**: Performance was measured using `redis-benchmark`. `SET` and `GET` workloads were tested against the server running with 1, 2, and 4 shards to evaluate scalability. The results were analyzed and documented, showing that the `SET` performance neared the 50,000 ops/sec target with 4 shards.
 
 ---
@@ -71,6 +73,8 @@ The final phase focused on documentation and performance analysis:
 ---
 
 ## 4. Setting Up Replication (Multiple Slaves)
+
+SkylerRedis supports master-slave replication. For a detailed analysis of the replication design and its trade-offs, see the [[Replication Design Document]](./14_replication_design_en.md).
 
 You can run multiple SkylerRedis instances to form a master-slave replication topology. The following example uses Docker and maps different ports to the host machine.
 

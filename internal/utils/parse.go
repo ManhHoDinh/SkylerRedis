@@ -31,7 +31,7 @@ func ParseArgs(conn net.Conn, reader *bufio.Reader) ([]string, error) {
 			WriteError(conn, err.Error())
 			return nil, err
 		}
-		args = append(args, strings.TrimSpace(arg))
+		args = append(args, strings.TrimSuffix(arg, "\r\n"))
 	}
 	if len(args) == 0 {
 		WriteError(conn, "empty command")
@@ -77,7 +77,7 @@ func ParseArgsWithByteCount(conn net.Conn, reader *bufio.Reader) ([]string, int,
 		}
 		totalBytes += len(arg)
 
-		args = append(args, strings.TrimSpace(arg))
+		args = append(args, strings.TrimSuffix(arg, "\r\n"))
 	}
 
 	return args, totalBytes, nil

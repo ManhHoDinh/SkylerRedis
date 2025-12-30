@@ -32,12 +32,12 @@ func (s *Shard) EvictRandomKeys() { // Added shard receiver
 	}
 
 	for _, key := range expiredKeys {
-		entry, ok := s.Store[key]
+		entryPtr, ok := s.Store[key]
 		if !ok {
 			continue 
 		}
 
-		if !entry.ExpiryTime.IsZero() && time.Now().After(entry.ExpiryTime) {
+		if !entryPtr.ExpiryTime.IsZero() && time.Now().After(entryPtr.ExpiryTime) {
 			delete(s.Store, key)
 		}
 	}
@@ -85,12 +85,12 @@ func (s *Shard) EvictKeysByLRU() { // Added shard receiver
 		minLRU := uint64(math.MaxUint64)
 
 		for _, key := range sample {
-			entry, ok := s.Store[key]
+			entryPtr, ok := s.Store[key]
 			if !ok {
 				continue 
 			}
-			if entry.LRU < minLRU {
-				minLRU = entry.LRU
+			if entryPtr.LRU < minLRU {
+				minLRU = entryPtr.LRU
 				lruKeyToEvict = key
 			}
 		}

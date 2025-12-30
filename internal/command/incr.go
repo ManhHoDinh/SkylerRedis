@@ -20,18 +20,21 @@ func (INCR) Handle(Conn net.Conn, args []string, isMaster bool, masterReplID str
 	shard.Mu.Lock()
 	defer shard.Mu.Unlock()
 
-	entry, exists := shard.Store[key]
-	if !exists || entry.ExpiryTime != (time.Time{}) && time.Now().After(entry.ExpiryTime) {
-		shard.Store[key] = memory.Entry{Value: "0", ExpiryTime: time.Time{}}
-		entry = shard.Store[key]
+	entryPtr, exists := shard.Store[key]
+	if !exists || (entryPtr != nil && !entryPtr.ExpiryTime.IsZero() && time.Now().After(entryPtr.ExpiryTime)) {
+		entryPtr = &memory.Entry{Value: "0", ExpiryTime: time.Time{}}
+		shard.Store[key] = entryPtr
 	}
 
-	val, err := strconv.Atoi(entry.Value)
+	val, err := strconv.Atoi(entryPtr.Value)
 	if err != nil {
 		utils.WriteError(Conn, "value is not an integer or out of range")
 		return
 	}
 	val++
-	shard.Store[key] = memory.Entry{Value: strconv.Itoa(val), ExpiryTime: entry.ExpiryTime}
+	entryPtr.Value = strconv.Itoa(val)
+	// No need to reassign shard.Store[key] = entryPtr here, as entryPtr is a pointer
+	// and its modification is reflected in the map. However, keeping for consistency.
+	shard.Store[key] = entryPtr 
 	utils.WriteInteger(Conn, val)
 }
